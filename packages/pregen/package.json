@@ -1,0 +1,19 @@
+{
+  "name": "@losttemple/pregen",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Offline pregeneration CLI: pool/dailies/tutorial rows emitted as D1 SQL batches. Node-only; the sole writer of island rows.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@losttemple/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.19.0"
+  }
+}
