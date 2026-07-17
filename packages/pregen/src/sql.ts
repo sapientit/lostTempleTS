@@ -9,6 +9,10 @@ import { isCommRow } from "./gen.js";
 
 export const DEFAULT_BATCH = 250;
 
+// D1 caps a single SQL statement at ~100KB; stay well under it (comm rows
+// for dailies/tutorials run ~3KB each).
+export const MAX_STATEMENT_BYTES = 80_000;
+
 /** Single-quoted SQL string literal ('' escaping — JSON never needs more). */
 export function sqlQuote(s: string): string {
   if (s.includes("\0")) throw new Error("NUL byte in SQL string");
@@ -24,13 +28,33 @@ function islandValues(row: Row): string {
   return `(${row.num},'${row.kind}',${row.seed},${row.difficulty},${route},NULL)`;
 }
 
-/** INSERT OR REPLACE batches for the islands table. */
-export function islandsInsertSql(rows: Row[], batch = DEFAULT_BATCH): string {
+/**
+ * INSERT OR REPLACE batches for the islands table. Batches are capped both
+ * by row count and by statement size (D1 rejects statements over ~100KB).
+ */
+export function islandsInsertSql(
+  rows: Row[],
+  batch = DEFAULT_BATCH,
+  maxBytes = MAX_STATEMENT_BYTES,
+): string {
+  const head = "INSERT OR REPLACE INTO islands (num, kind, seed, difficulty, route, comm) VALUES\n";
   const out: string[] = [];
-  for (let i = 0; i < rows.length; i += batch) {
-    const values = rows.slice(i, i + batch).map(islandValues).join(",\n");
-    out.push(`INSERT OR REPLACE INTO islands (num, kind, seed, difficulty, route, comm) VALUES\n${values};`);
+  let values: string[] = [];
+  let size = head.length;
+  const flush = (): void => {
+    if (values.length > 0) out.push(head + values.join(",\n") + ";");
+    values = [];
+    size = head.length;
+  };
+  for (const row of rows) {
+    const v = islandValues(row);
+    if (values.length > 0 && (values.length >= batch || size + v.length + 2 > maxBytes)) {
+      flush();
+    }
+    values.push(v);
+    size += v.length + 2;
   }
+  flush();
   return out.join("\n");
 }
 

@@ -74,6 +74,34 @@ describe("emitted SQL round-trips through real SQLite", () => {
     expect(db.prepare("SELECT COUNT(*) AS c FROM islands").get()).toMatchObject({ c: 2 });
   });
 
+  it("splits statements at the byte cap (D1 ~100KB statement limit)", () => {
+    const big: CommRow[] = Array.from({ length: 40 }, (_, i) => ({
+      num: 1000000 + i,
+      kind: "daily",
+      difficulty: 1,
+      comm: {
+        mapNum: 1000000 + i,
+        rows: 6,
+        hexes: [],
+        obstacles: [],
+        rivers: [],
+        cliffs: [],
+        difficulty: 1,
+        roles: [],
+        // ~3KB of payload per row, as real dailies have.
+        route: { startPos: 1, startDir: "w", distance: Array(1500).fill(8), turn: [] },
+      },
+    }));
+    const sql = islandsInsertSql(big, 250, 20_000);
+    const statements = sql.split(";\n").filter((s) => s.trim() !== "");
+    expect(statements.length).toBeGreaterThan(1);
+    for (const s of statements) expect(s.length).toBeLessThanOrEqual(20_000);
+    const db = new DatabaseSync(":memory:");
+    db.exec(SCHEMA);
+    db.exec(sql);
+    expect(db.prepare("SELECT COUNT(*) AS c FROM islands").get()).toMatchObject({ c: 40 });
+  });
+
   it("pool rows are dense from the start offset", () => {
     const db = new DatabaseSync(":memory:");
     db.exec(SCHEMA);
