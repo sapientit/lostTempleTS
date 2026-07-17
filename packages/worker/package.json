@@ -1,0 +1,20 @@
+{
+  "name": "@losttemple/worker",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Cloudflare Worker serving the Lost Temple API from D1 + the pure core. Replaces the Ktor server.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --persist-to .wrangler/state",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@losttemple/core": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "wrangler": "^4.0.0"
+  }
+}

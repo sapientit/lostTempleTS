@@ -1,0 +1,17 @@
+# Lost Temple API Worker. Replaces the bootstrap hello-world Worker of the
+# same name. Deploy: npx wrangler deploy (from this directory).
+name = "losttemple-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+account_id = "ea7ad751ffa489bc577330c6eedd7500"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "losttemple"
+database_id = "4de83be2-2474-4fc7-a177-5a7adfea56d6"
+
+[triggers]
+# Daily backstop at 00:05 UTC (mirrors the Ktor scheduler): free tier only
+# CHECKS tomorrow's six daily rows and writes an alerts row if missing.
+crons = ["5 0 * * *"]
