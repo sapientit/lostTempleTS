@@ -1,0 +1,20 @@
+{
+  "name": "losttemple-ts",
+  "private": true,
+  "version": "0.0.1",
+  "description": "TypeScript port of the Lost Temple server (Kotlin reference: ~/Documents/kotlin/losttemple1)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

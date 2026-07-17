@@ -1,0 +1,14 @@
+{
+  "name": "@losttemple/core",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Pure Lost Temple game core: generation, RNG, journey engine, difficulty, wire DTOs. No platform APIs.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
