@@ -18,6 +18,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   TUTORIAL_NUMS,
   dayNumber,
@@ -36,7 +37,10 @@ const DEFAULT_COUNTERS = "artifacts/counters.json";
 // Canonical home of the tutorial map content is THIS repo
 // (resources/maps, copied from the retired Kotlin server 2026-07-18);
 // edit here, then import-tutorials + d1 execute to publish.
-const DEFAULT_TUTORIAL_DIR = path.join(__dirname, "../resources/maps");
+const DEFAULT_TUTORIAL_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../resources/maps",
+);
 
 interface Args {
   positional: string[];
