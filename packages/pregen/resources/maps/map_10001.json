@@ -1,0 +1,262 @@
+{
+  "mapNum": 10001,
+  "rows": 5,
+  "hexes": [
+    {
+      "index": 1,
+      "x": 0,
+      "y": 2,
+      "terrain": "sea",
+      "directions": [
+        "se"
+      ]
+    },
+    {
+      "index": 2,
+      "x": 0,
+      "y": 3,
+      "terrain": "sea",
+      "directions": [
+        "se",
+        "sw"
+      ]
+    },
+    {
+      "index": 3,
+      "x": 0,
+      "y": 4,
+      "terrain": "sea",
+      "directions": [
+        "se",
+        "sw"
+      ]
+    },
+    {
+      "index": 4,
+      "x": 0,
+      "y": 5,
+      "terrain": "sea",
+      "directions": [
+        "sw"
+      ]
+    },
+    {
+      "index": 5,
+      "x": 1,
+      "y": 1,
+      "terrain": "sea",
+      "directions": [
+        "se",
+        "e"
+      ]
+    },
+    {
+      "index": 6,
+      "x": 1,
+      "y": 2,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 7,
+      "x": 1,
+      "y": 3,
+      "terrain": "forest",
+      "directions": null
+    },
+    {
+      "index": 8,
+      "x": 1,
+      "y": 4,
+      "terrain": "forest",
+      "directions": null
+    },
+    {
+      "index": 9,
+      "x": 1,
+      "y": 5,
+      "terrain": "sea",
+      "directions": [
+        "w"
+      ]
+    },
+    {
+      "index": 10,
+      "x": 2,
+      "y": 1,
+      "terrain": "coast",
+      "directions": [
+        "e"
+      ]
+    },
+    {
+      "index": 11,
+      "x": 2,
+      "y": 2,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 12,
+      "x": 2,
+      "y": 3,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 13,
+      "x": 2,
+      "y": 4,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 14,
+      "x": 2,
+      "y": 5,
+      "terrain": "sea",
+      "directions": [
+        "sw",
+        "nw",
+        "w"
+      ]
+    },
+    {
+      "index": 15,
+      "x": 3,
+      "y": 1,
+      "terrain": "sea",
+      "directions": [
+        "ne",
+        "e"
+      ]
+    },
+    {
+      "index": 16,
+      "x": 3,
+      "y": 2,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 17,
+      "x": 3,
+      "y": 3,
+      "terrain": "hills",
+      "directions": null
+    },
+    {
+      "index": 18,
+      "x": 3,
+      "y": 4,
+      "terrain": "temple",
+      "directions": null
+    },
+    {
+      "index": 19,
+      "x": 3,
+      "y": 5,
+      "terrain": "sea",
+      "directions": [
+        "w"
+      ]
+    },
+    {
+      "index": 20,
+      "x": 4,
+      "y": 2,
+      "terrain": "sea",
+      "directions": [
+        "ne"
+      ]
+    },
+    {
+      "index": 21,
+      "x": 4,
+      "y": 3,
+      "terrain": "sea",
+      "directions": [
+        "nw",
+        "ne"
+      ]
+    },
+    {
+      "index": 22,
+      "x": 4,
+      "y": 4,
+      "terrain": "sea",
+      "directions": [
+        "nw",
+        "ne"
+      ]
+    },
+    {
+      "index": 23,
+      "x": 4,
+      "y": 5,
+      "terrain": "sea",
+      "directions": [
+        "nw"
+      ]
+    }
+  ],
+  "obstacles": [
+
+    {
+      "index": 18,
+      "type": "temple"
+    }
+  ],
+  "rivers": [
+
+  ],
+  "cliffs": [
+    {
+      "land": 8,
+      "direction": "sw"
+    },
+    {
+      "land": 17,
+      "direction": "e"
+    },
+    {
+      "land": 13,
+      "direction": "w"
+    },
+    {
+      "land": 13,
+      "direction": "sw"
+    },
+    {
+      "land": 7,
+      "direction": "w"
+    }
+  ],
+  "difficulty": 26,
+  "roles": [
+    {
+      "role": "arch",
+      "cost": 100
+    },
+    {
+      "role": "warrior",
+      "cost": -1
+    },
+    {
+      "role": "balloonist",
+      "cost": -1
+    },
+    {
+      "role": "magician",
+      "cost": -1
+    },
+    {
+      "role": "researcher",
+      "cost": -1
+    },
+    {
+      "role": "scout",
+      "cost": -1
+    }
+  ]
+}
