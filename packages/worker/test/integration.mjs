@@ -90,10 +90,16 @@ function isoPlusDays(days) {
 }
 
 // ---------------------------------------------------------------- health
+// Since the static-assets deploy, "/" serves the game client's index.html
+// (asset-first routing shadows the old "Hello, Ktor!" Worker route).
 console.log("health");
 {
   const { res, text } = await get("/");
-  check("GET / is 200 text", res.status === 200 && text === "Hello, Ktor!", text);
+  check(
+    "GET / is 200 client HTML",
+    res.status === 200 && text.includes('<div id="root">'),
+    text.slice(0, 80),
+  );
 }
 
 // ------------------------------------------------- golden island 300001
@@ -320,7 +326,10 @@ console.log("CORS");
   check("ACAO present on 400 too", err.res.headers.get("Access-Control-Allow-Origin") === origin);
   const other = await get("/client/getLevel?island=300001", { Origin: "https://evil.example" });
   check("no ACAO for disallowed origin", other.res.headers.get("Access-Control-Allow-Origin") === null);
-  const localhost = await get("/", { Origin: "http://localhost:5173" });
+  // "/" is now a static asset (no CORS headers), so probe a Worker route.
+  const localhost = await get("/client/getLevel?island=300001", {
+    Origin: "http://localhost:5173",
+  });
   check("localhost:5173 allowed", localhost.res.headers.get("Access-Control-Allow-Origin") === "http://localhost:5173");
 
   const pre = await fetch(BASE + "/client/execute", {

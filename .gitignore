@@ -4,3 +4,5 @@ dist/
 .DS_Store
 .wrangler/
 coverage/
+# Built client synced in by ~/bin/deploy-game (source of truth: ~/temple-client)
+packages/worker/public/

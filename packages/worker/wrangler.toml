@@ -6,6 +6,24 @@ compatibility_date = "2026-07-01"
 account_id = "ea7ad751ffa489bc577330c6eedd7500"
 workers_dev = true
 
+# Static assets: the built game client (temple-client dist/), synced into
+# ./public by ~/bin/deploy-game (gitignored - never committed here).
+# Routing semantics (developers.cloudflare.com/workers/static-assets/routing):
+#   - run_worker_first patterns ALWAYS invoke the Worker script, so /client/*
+#     (the API) can never be shadowed by an asset.
+#   - Everything else is asset-first: a matching file is served directly;
+#     non-matching paths fall back to index.html with a 200 (SPA mode). The
+#     client is query-param routed so only "/" matters, but the fallback keeps
+#     any deep link rendering the app instead of a 404.
+#   - Non-GET/HEAD requests (e.g. POST /client/execute) always reach the
+#     Worker regardless, but /client/* covers them explicitly anyway.
+# Consequence: the old "Hello, Ktor!" health text at "/" is now shadowed by
+# the client's index.html (intended - single origin for client + API).
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = ["/client/*"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "losttemple"
