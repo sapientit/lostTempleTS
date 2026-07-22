@@ -8,6 +8,26 @@ import type { Env } from "./islands.js";
 import { DAY_MS, dayNumber, todayUtcMs } from "./parse.js";
 import { respond } from "./respond.js";
 import * as routes from "./routes.js";
+import {
+  injectShareMeta,
+  parseShareSegments,
+  shareImage,
+  shareMeta,
+  SHARE_IMAGE_CACHE_CONTROL,
+} from "./share.js";
+
+/**
+ * Public-facing origin for a request, honoring X-Forwarded-Host/-Proto set
+ * by the duckdns.org nginx reverse proxy in front of this Worker. Without
+ * this, og:image/og:url would be built from the Cloudflare-visible host
+ * (losttemple-api.losttemple.workers.dev) instead of the public domain the
+ * link was actually shared under.
+ */
+function publicOrigin(request: Request, url: URL): string {
+  const host = request.headers.get("X-Forwarded-Host") ?? url.host;
+  const proto = request.headers.get("X-Forwarded-Proto") ?? url.protocol.slice(0, -1);
+  return `${proto}://${host}`;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -28,6 +48,32 @@ export default {
             return routes.getDaily(url, cors);
           case "/client/getLevel":
             return routes.getLevel(url, cors);
+        }
+        if (url.pathname.startsWith("/og/")) {
+          const segments = url.pathname.slice("/og/".length).split("/");
+          const params = parseShareSegments(segments);
+          if (params === null) {
+            return new Response("Not Found", { status: 404, headers: cors });
+          }
+          const image = await shareImage(params);
+          const headers = new Headers(image.headers);
+          for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+          headers.set("Cache-Control", SHARE_IMAGE_CACHE_CONTROL);
+          return new Response(image.body, { status: image.status, headers });
+        }
+        if (url.pathname.startsWith("/s/")) {
+          const segments = url.pathname.slice("/s/".length).split("/");
+          const params = parseShareSegments(segments);
+          const indexHtml = await env.ASSETS.fetch(new URL("/index.html", url));
+          if (params === null) return indexHtml;
+          const origin = publicOrigin(request, url);
+          const imageUrl = `${origin}/og/${segments.join("/")}`;
+          const pageUrl = `${origin}${url.pathname}${url.search}`;
+          const shared = injectShareMeta(indexHtml, shareMeta(params), imageUrl, pageUrl);
+          const headers = new Headers(shared.headers);
+          for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+          headers.set("Cache-Control", SHARE_IMAGE_CACHE_CONTROL);
+          return new Response(shared.body, { status: shared.status, headers });
         }
       }
       if (request.method === "POST" && url.pathname === "/client/execute") {

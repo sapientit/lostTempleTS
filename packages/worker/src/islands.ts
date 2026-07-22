@@ -12,6 +12,7 @@ import type { IslandModel } from "@losttemple/core";
 
 export interface Env {
   DB: D1Database;
+  ASSETS: Fetcher;
 }
 
 interface IslandRow {

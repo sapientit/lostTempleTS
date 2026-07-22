@@ -21,13 +21,35 @@ workers_dev = true
 # the client's index.html (intended - single origin for client + API).
 [assets]
 directory = "./public"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/client/*"]
+# /s/* serves the client's index.html with per-share og:* meta tags injected
+# (share.ts) - must hit the Worker so it can fetch index.html via the ASSETS
+# binding and rewrite its <head> before returning it.
+# /og/* is the actual OG share-card image route - also not a static file,
+# same reason as /client/*: asset-first SPA fallback would otherwise serve
+# index.html for it instead of 404ing or rendering the image.
+run_worker_first = ["/client/*", "/s/*", "/og/*"]
+
+# The share-card fonts (assets/share/*.ttf) are bundled straight into the
+# Worker script as raw ArrayBuffer - Satori's `fonts` option wants binary
+# font data directly, no base64 round-trip needed. (The background image is
+# handled differently: see ogCardBackground.generated.ts.)
+[[rules]]
+type = "Data"
+globs = ["**/*.ttf"]
+fallthrough = true
 
 [[d1_databases]]
 binding = "DB"
 database_name = "losttemple"
 database_id = "4de83be2-2474-4fc7-a177-5a7adfea56d6"
+
+# Persists console.error/log output (e.g. the "Unhandled exception" 500
+# envelope in index.ts) so failures are queryable in the dashboard/API after
+# the fact, not just visible during a live `wrangler tail` session.
+[observability]
+enabled = true
 
 [triggers]
 # Daily backstop at 00:05 UTC (mirrors the Ktor scheduler): free tier only
