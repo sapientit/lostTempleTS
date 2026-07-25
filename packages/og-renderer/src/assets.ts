@@ -21,6 +21,7 @@ import { SHARE_ASSET_FILES, type AssetResolver } from "@losttemple/worker/share-
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WORKER_ASSETS_DIR = path.join(HERE, "../../worker/assets/share");
 const FALLBACK_FONT_PATH = path.join(WORKER_ASSETS_DIR, "cinzel-decorative-bold.ttf");
+const WHATSAPP_SQUARE_DIR = path.join(WORKER_ASSETS_DIR, "whatsapp-square");
 
 // Preloaded once at process startup (~40 small PNG/JPG files, a few hundred
 // KB total) rather than read-per-request: this is a long-lived service, not
@@ -47,4 +48,29 @@ export const resolveAsset: AssetResolver = (key: string): string => {
  * shareTree.ts) - loaded once regardless, it's cheap and rarely-changing. */
 export function loadFallbackFontBuffer(): Buffer {
   return readFileSync(FALLBACK_FONT_PATH);
+}
+
+// WhatsApp picks its link-preview layout (small cropped thumbnail vs. a
+// full-width "large image" card) based on og:image's aspect ratio, not
+// anything we can set explicitly - see
+// packages/worker/assets/share/whatsapp-square/README.md for the full
+// story, including the square variant that was tried first and triggered
+// the large-image layout (not wanted). These 5 *-wide.jpg images keep the
+// same hex-card content but pillarboxed back out to the normal card's
+// 1200:620 ratio, which was confirmed to get the small/cropped treatment.
+// Fully pre-composited offline (see build.py in that directory) - serving
+// one is a plain byte copy, no Satori/resvg/sharp render involved at all.
+const whatsappImages = new Map<number, Buffer>();
+
+function loadWhatsappImages(): void {
+  for (let stars = 1; stars <= 5; stars++) {
+    whatsappImages.set(stars, readFileSync(path.join(WHATSAPP_SQUARE_DIR, `stars-${stars}-wide.jpg`)));
+  }
+}
+
+loadWhatsappImages();
+
+/** The pre-built WhatsApp share image for this star count (1-5), or undefined if out of range. */
+export function getWhatsappImage(stars: number): Buffer | undefined {
+  return whatsappImages.get(stars);
 }

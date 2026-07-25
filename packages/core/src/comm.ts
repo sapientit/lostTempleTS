@@ -34,6 +34,19 @@ export interface CommExecute {
   turns?: number[]; // defaults to []
 }
 
+/** One step of a replayed journey: either a single hex-move or a turn-in-place. */
+export interface CommTraceStep {
+  kind: "move" | "turn";
+  position: number;
+  direction: Direction;
+  death?: Death; // only ever set on the last entry, if the journey ended in death
+}
+
+/** POST /client/explain response: the usual CommJourney plus the full step trace. */
+export interface CommExplain extends CommJourney {
+  trace: CommTraceStep[];
+}
+
 export interface CommIsland {
   mapNum: number;
   rows: number;

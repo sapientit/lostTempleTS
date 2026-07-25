@@ -4,7 +4,7 @@
  */
 
 import { ALL_DIRECTIONS, ALL_ROLES, Journey, levelFor } from "@losttemple/core";
-import type { CommExecute } from "@losttemple/core";
+import type { CommExecute, CommExplain } from "@losttemple/core";
 import { randomPoolNumber, resolveIsland } from "./islands.js";
 import type { Env } from "./islands.js";
 import {
@@ -63,9 +63,13 @@ export function getLevel(url: URL, cors: Record<string, string>): Response {
 
 const WALKING_EXEMPT = new Set(["balloonist", "researcher", "magician"]);
 
-export async function execute(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
-  // Malformed JSON / missing required fields throw -> 500 envelope, the
-  // same class of failure as Ktor's receive<CommExecute>() (S§2.4).
+/**
+ * Shared CommExecute body parsing for /client/execute and /client/explain
+ * (both take the identical request shape). Malformed JSON / missing
+ * required fields throw -> 500 envelope, the same class of failure as
+ * Ktor's receive<CommExecute>() (S§2.4).
+ */
+async function parseCommExecute(request: Request): Promise<CommExecute> {
   const body = (await request.json()) as Partial<CommExecute>;
   if (
     typeof body.score !== "number" ||
@@ -78,7 +82,11 @@ export async function execute(request: Request, env: Env, cors: Record<string, s
   ) {
     throw new Error("Invalid CommExecute body");
   }
-  const exec = body as CommExecute;
+  return body as CommExecute;
+}
+
+export async function execute(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  const exec = await parseCommExecute(request);
 
   const island = await resolveIsland(env, exec.mapNum);
   // Walking roles must start on a beach (the difficulty search only ever
@@ -99,5 +107,31 @@ export async function execute(request: Request, env: Env, cors: Record<string, s
   let comm = journey.getComm();
   // kotlinx omits percent at its default 0 (journey.copy(percent = percent)).
   if (percent !== 0) comm = { ...comm, percent };
+  return respond(200, { status: "ok", journey: comm }, null, cors);
+}
+
+/**
+ * POST /client/explain: a stateless step-by-step replay of a journey for
+ * the three "walking" roles (arch, warrior, scout) — no setScore call, no
+ * write of any kind, purely a visualization query. balloonist/magician/
+ * researcher resolve in one shot and have no meaningful per-step trace, so
+ * they're rejected with a clean 400 rather than attempting to fake one.
+ */
+export async function explain(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  const exec = await parseCommExecute(request);
+
+  if (WALKING_EXEMPT.has(exec.role)) {
+    // Checked before any island resolution: no D1 access for a request we
+    // are going to reject regardless of island/start position.
+    return respond(400, { status: "error", error: `explain is not supported for role ${exec.role}` }, null, cors);
+  }
+
+  const island = await resolveIsland(env, exec.mapNum);
+  if (!island.indexes.has(exec.startPos) || !island.beaches.has(exec.startPos)) {
+    return respond(400, { status: "error", error: "Invalid start position" }, null, cors);
+  }
+
+  const { journey, trace } = Journey.createForExplain(exec, island);
+  const comm: CommExplain = { ...journey.getComm(), trace };
   return respond(200, { status: "ok", journey: comm }, null, cors);
 }

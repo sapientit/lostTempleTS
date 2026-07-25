@@ -79,6 +79,9 @@ export default {
       if (request.method === "POST" && url.pathname === "/client/execute") {
         return await routes.execute(request, env, cors);
       }
+      if (request.method === "POST" && url.pathname === "/client/explain") {
+        return await routes.explain(request, env, cors);
+      }
       return new Response("Not Found", { status: 404, headers: cors });
     } catch (cause) {
       // StatusPages parity: 500 envelope carrying message + stack.

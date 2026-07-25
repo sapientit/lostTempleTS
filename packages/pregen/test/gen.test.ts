@@ -81,9 +81,11 @@ describe("dailies", () => {
       expect(row.difficulty).toBeLessThanOrEqual(100);
       expect(counters[level]!).toBeGreaterThan(FIRST_SEED);
       // The accepted seed is counters[level]-1; the comm must regenerate
-      // identically from it with the layout picked by the MAP NUMBER.
+      // identically from it with the layout picked by the MAP NUMBER,
+      // salted by level so levels sharing a layout pool (1&2, 3&4, 5&6)
+      // diverge instead of always matching on the same day.
       const seed = counters[level]! - 1;
-      const model = forLevel(level)!.forNumber(row.num);
+      const model = forLevel(level)!.forNumber(row.num + level);
       const regen = Island.gen(seed, model);
       expect({ ...regen.commIsland, mapNum: row.num }).toEqual(row.comm);
       // Every seed skipped along the way failed the 1..100 gate.

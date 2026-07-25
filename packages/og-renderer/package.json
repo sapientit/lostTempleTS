@@ -2,7 +2,7 @@
   "name": "@losttemple/og-renderer",
   "private": true,
   "version": "0.0.1",
-  "description": "Standalone always-on Node HTTP service that renders the /og/ share-card PNG off Cloudflare (runs on the Oracle box, no CPU-time ceiling). Reuses packages/worker's shareTree.ts render logic unchanged, swapping workers-og for satori + @resvg/resvg-js.",
+  "description": "Standalone always-on Node HTTP service that renders the /og/ share-card image off Cloudflare (runs on the Oracle box, no CPU-time ceiling). Reuses packages/worker's shareTree.ts render logic unchanged, swapping workers-og for satori + @resvg/resvg-js + sharp.",
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
@@ -11,7 +11,8 @@
   "dependencies": {
     "@losttemple/worker": "*",
     "@resvg/resvg-js": "^2.6.2",
-    "satori": "^0.28.2"
+    "satori": "^0.28.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

@@ -110,8 +110,15 @@ export function genDailies(fromDay: number, toDay: number, counters: Counters): 
     for (const level of LEVELS) {
       const num = level * 1_000_000 + day;
       // The daily's map number picks the layout variant, so the layout
-      // cycles day by day and regenerates identically.
-      const model = forLevel(level)!.forNumber(num);
+      // cycles day by day and regenerates identically. Layout pools are
+      // sized 4 and level * 1_000_000 is always a multiple of 4, so
+      // forNumber(num) alone would collapse to `day mod 4` regardless of
+      // level — levels sharing a pool (1&2, 3&4, 5&6) would always pick the
+      // identical beach/temple/river arrangement on a given day. Salt with
+      // the level for layout selection only; num (mapNum, seed lookup, the
+      // Kotlin-parity-gated IslandModel.forNumber contract itself) is
+      // untouched.
+      const model = forLevel(level)!.forNumber(num + level);
       let seed = next[level] ?? FIRST_SEED;
       let island = Island.gen(seed, model);
       let attempts = 0;
