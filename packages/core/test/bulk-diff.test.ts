@@ -14,7 +14,7 @@ import { genPlayable } from "../src/numbers.js";
  *
  * Corpus: islands 1..50, 3000..3010, 6000..6010, 8990..9000, each level
  * range level*100000+0..30, and daily-style seeds 1000000..1000020 per
- * level generated with forLevel(L).forNumber(L*1000000+193).
+ * level generated with forNumber(forLevel(L), L*1000000+193).
  *
  * Comparison rules:
  *  - `route` is EXCLUDED from the structural diff (tie-breaks among equally
