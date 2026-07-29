@@ -67,12 +67,26 @@ function parseArgs(argv: string[]): Args {
   return { positional, flags };
 }
 
+/** A bare integer string ("-?\d+"), or null if [s] isn't one. */
+function parseIntStrict(s: string): number | null {
+  return /^-?\d+$/.test(s) ? Number(s) : null;
+}
+
 function requireInt(args: Args, name: string): number {
   const raw = args.flags[name];
-  if (raw === undefined || !/^-?\d+$/.test(raw)) {
-    throw new Error(`missing or invalid --${name}`);
-  }
-  return Number(raw);
+  const value = raw === undefined ? null : parseIntStrict(raw);
+  if (value === null) throw new Error(`missing or invalid --${name}`);
+  return value;
+}
+
+/** Reads a .jsonl manifest (one JSON row per non-blank line) — the shared
+ *  format `verify` and `sql` both consume. */
+function readJsonLines<T>(file: string): T[] {
+  return fs
+    .readFileSync(file, "utf8")
+    .split("\n")
+    .filter((l) => l.trim() !== "")
+    .map((l) => JSON.parse(l) as T);
 }
 
 function writeArtifacts(outDir: string, name: string, sql: string, rows: Row[]): void {
@@ -132,10 +146,9 @@ function cmdDailies(args: Args): void {
   const counters = loadCounters(countersFile);
   console.log(`dailies days ${from}..${to} (${isoDate(from)}..${isoDate(to)}), counters ${JSON.stringify(counters)}`);
   const result = genDailies(from, to, counters);
-  const metaEntries: Record<string, string> = {};
-  for (const [level, seed] of Object.entries(result.counters)) {
-    metaEntries[`daily_counter_${level}`] = String(seed);
-  }
+  const metaEntries = Object.fromEntries(
+    Object.entries(result.counters).map(([level, seed]) => [`daily_counter_${level}`, String(seed)]),
+  );
   const sql = [islandsInsertSql(result.rows), metaUpsertSql(metaEntries)].join("\n");
   writeArtifacts(outDir, `seed-dailies-${isoDate(from)}-${isoDate(to)}`, sql, result.rows);
   fs.mkdirSync(path.dirname(countersFile), { recursive: true });
@@ -146,19 +159,18 @@ function cmdDailies(args: Args): void {
 function cmdImportTutorials(args: Args): void {
   const dir = args.flags["dir"] ?? DEFAULT_TUTORIAL_DIR;
   const outDir = args.flags["out"] ?? DEFAULT_OUT;
-  const rows: Row[] = [];
-  for (const num of TUTORIAL_NUMS) {
-    const file = path.join(dir, `map_${num}.json`);
-    rows.push(importTutorial(num, fs.readFileSync(file, "utf8")));
-  }
+  const rows: Row[] = TUTORIAL_NUMS.map((num) =>
+    importTutorial(num, fs.readFileSync(path.join(dir, `map_${num}.json`), "utf8")),
+  );
   writeArtifacts(outDir, "seed-tutorials", islandsInsertSql(rows), rows);
 }
 
 function cmdNumber(args: Args): void {
   const outDir = args.flags["out"] ?? DEFAULT_OUT;
   const nums = args.positional.map((s) => {
-    if (!/^-?\d+$/.test(s)) throw new Error(`invalid island number ${s}`);
-    return Number(s);
+    const n = parseIntStrict(s);
+    if (n === null) throw new Error(`invalid island number ${s}`);
+    return n;
   });
   if (nums.length === 0) throw new Error("number: give at least one island number");
   const rows: Row[] = nums.map((n) => genMapping(n));
@@ -176,11 +188,7 @@ function cmdVerify(args: Args): void {
   let total = 0;
   let failures = 0;
   for (const file of files) {
-    const rows = fs
-      .readFileSync(path.join(dir, file), "utf8")
-      .split("\n")
-      .filter((l) => l.trim() !== "")
-      .map((l) => JSON.parse(l) as Row);
+    const rows = readJsonLines<Row>(path.join(dir, file));
     // Deterministic spread sample: every ceil(n/sample)-th row.
     const step = sample !== null && rows.length > sample ? Math.ceil(rows.length / sample) : 1;
     let checked = 0;
@@ -204,11 +212,7 @@ function cmdSql(args: Args): void {
   const manifest = args.flags["manifest"];
   if (manifest === undefined) throw new Error("sql: need --manifest F.jsonl");
   const out = args.flags["out"] ?? manifest.replace(/\.jsonl$/, ".sql");
-  const rows = fs
-    .readFileSync(manifest, "utf8")
-    .split("\n")
-    .filter((l) => l.trim() !== "")
-    .map((l) => JSON.parse(l) as Row);
+  const rows = readJsonLines<Row>(manifest);
   fs.writeFileSync(out, islandsInsertSql(rows) + "\n");
   console.log(`wrote ${out} (${rows.length} island rows; pool/meta statements not re-emitted)`);
 }

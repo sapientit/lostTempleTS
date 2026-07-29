@@ -17,6 +17,7 @@ import {
   Island,
   Journey,
   forLevel,
+  forNumber,
   genPlayable,
   modelFor,
 } from "@losttemple/core";
@@ -118,7 +119,7 @@ export function genDailies(fromDay: number, toDay: number, counters: Counters): 
       // the level for layout selection only; num (mapNum, seed lookup, the
       // Kotlin-parity-gated IslandModel.forNumber contract itself) is
       // untouched.
-      const model = forLevel(level)!.forNumber(num + level);
+      const model = forNumber(forLevel(level)!, num + level);
       let seed = next[level] ?? FIRST_SEED;
       let island = Island.gen(seed, model);
       let attempts = 0;
@@ -187,7 +188,7 @@ export function verifyRow(row: Row): string | null {
     }
     return null;
   }
-  const model = modelFor(row.num).forNumber(row.num);
+  const model = forNumber(modelFor(row.num), row.num);
   const island = Island.gen(row.seed, model);
   if (island.difficulty !== row.difficulty) {
     return `regen difficulty ${island.difficulty} != stored ${row.difficulty}`;

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { CommIsland, CommRoute } from "../src/comm.js";
 import { Island } from "../src/island.js";
 import { Journey } from "../src/journey.js";
-import { forLevel } from "../src/model.js";
+import { forLevel, forNumber } from "../src/model.js";
 import { genPlayable } from "../src/numbers.js";
 
 /**
@@ -121,7 +121,7 @@ describe("bulk diff vs Kotlin dump", () => {
       const level = Number(m[1]);
       const seed = Number(m[2]);
       const kotlin = JSON.parse(readFileSync(join(DUMP_DIR, file), "utf8")) as CommIsland;
-      const model = forLevel(level)!.forNumber(level * 1_000_000 + 193);
+      const model = forNumber(forLevel(level)!, level * 1_000_000 + 193);
       const island = Island.gen(seed, model);
       compareIsland(kotlin, island, `daily level ${level} seed ${seed}`, failures);
     }

@@ -29,59 +29,102 @@ function publicOrigin(request: Request, url: URL): string {
   return `${proto}://${host}`;
 }
 
+/** Response headers merged from a base Response, the request's CORS headers,
+ *  and a fixed Cache-Control - shared by the /og/ and /s/ handlers below. */
+function withCorsAndCache(base: Response, cors: Record<string, string>, cacheControl: string): Headers {
+  const headers = new Headers(base.headers);
+  for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+  headers.set("Cache-Control", cacheControl);
+  return headers;
+}
+
+interface RouteContext {
+  request: Request;
+  url: URL;
+  env: Env;
+  cors: Record<string, string>;
+}
+
+interface Route {
+  method: "GET" | "POST";
+  match: (pathname: string) => boolean;
+  handler: (ctx: RouteContext) => Response | Promise<Response>;
+}
+
+// Exact routes before prefix routes, GET before POST - first match wins, and
+// this order reproduces exactly the precedence the original nested
+// if/switch dispatch had (S§2 route table).
+const ROUTES: Route[] = [
+  {
+    method: "GET",
+    match: (p) => p === "/",
+    // Health text; the client never reads it.
+    handler: ({ cors }) =>
+      new Response("Hello, Ktor!", { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } }),
+  },
+  {
+    method: "GET",
+    match: (p) => p === "/client/getIsland",
+    handler: ({ url, env, cors }) => routes.getIsland(url, env, cors),
+  },
+  {
+    method: "GET",
+    match: (p) => p === "/client/getDaily",
+    handler: ({ url, cors }) => routes.getDaily(url, cors),
+  },
+  {
+    method: "GET",
+    match: (p) => p === "/client/getLevel",
+    handler: ({ url, cors }) => routes.getLevel(url, cors),
+  },
+  {
+    method: "GET",
+    match: (p) => p.startsWith("/og/"),
+    handler: async ({ url, cors }) => {
+      const segments = url.pathname.slice("/og/".length).split("/");
+      const params = parseShareSegments(segments);
+      if (params === null) return new Response("Not Found", { status: 404, headers: cors });
+      const image = await shareImage(params);
+      const headers = withCorsAndCache(image, cors, SHARE_IMAGE_CACHE_CONTROL);
+      return new Response(image.body, { status: image.status, headers });
+    },
+  },
+  {
+    method: "GET",
+    match: (p) => p.startsWith("/s/"),
+    handler: async ({ request, url, env, cors }) => {
+      const segments = url.pathname.slice("/s/".length).split("/");
+      const params = parseShareSegments(segments);
+      const indexHtml = await env.ASSETS.fetch(new URL("/index.html", url));
+      if (params === null) return indexHtml;
+      const origin = publicOrigin(request, url);
+      const imageUrl = `${origin}/og/${segments.join("/")}`;
+      const pageUrl = `${origin}${url.pathname}${url.search}`;
+      const shared = injectShareMeta(indexHtml, shareMeta(params), imageUrl, pageUrl);
+      const headers = withCorsAndCache(shared, cors, SHARE_IMAGE_CACHE_CONTROL);
+      return new Response(shared.body, { status: shared.status, headers });
+    },
+  },
+  {
+    method: "POST",
+    match: (p) => p === "/client/execute",
+    handler: ({ request, env, cors }) => routes.execute(request, env, cors),
+  },
+  {
+    method: "POST",
+    match: (p) => p === "/client/explain",
+    handler: ({ request, env, cors }) => routes.explain(request, env, cors),
+  },
+];
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const cors = corsHeadersFor(request);
     if (request.method === "OPTIONS") return preflight(cors);
     try {
       const url = new URL(request.url);
-      if (request.method === "GET") {
-        switch (url.pathname) {
-          case "/":
-            // Health text; the client never reads it (S§2 route table).
-            return new Response("Hello, Ktor!", {
-              headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
-            });
-          case "/client/getIsland":
-            return await routes.getIsland(url, env, cors);
-          case "/client/getDaily":
-            return routes.getDaily(url, cors);
-          case "/client/getLevel":
-            return routes.getLevel(url, cors);
-        }
-        if (url.pathname.startsWith("/og/")) {
-          const segments = url.pathname.slice("/og/".length).split("/");
-          const params = parseShareSegments(segments);
-          if (params === null) {
-            return new Response("Not Found", { status: 404, headers: cors });
-          }
-          const image = await shareImage(params);
-          const headers = new Headers(image.headers);
-          for (const [k, v] of Object.entries(cors)) headers.set(k, v);
-          headers.set("Cache-Control", SHARE_IMAGE_CACHE_CONTROL);
-          return new Response(image.body, { status: image.status, headers });
-        }
-        if (url.pathname.startsWith("/s/")) {
-          const segments = url.pathname.slice("/s/".length).split("/");
-          const params = parseShareSegments(segments);
-          const indexHtml = await env.ASSETS.fetch(new URL("/index.html", url));
-          if (params === null) return indexHtml;
-          const origin = publicOrigin(request, url);
-          const imageUrl = `${origin}/og/${segments.join("/")}`;
-          const pageUrl = `${origin}${url.pathname}${url.search}`;
-          const shared = injectShareMeta(indexHtml, shareMeta(params), imageUrl, pageUrl);
-          const headers = new Headers(shared.headers);
-          for (const [k, v] of Object.entries(cors)) headers.set(k, v);
-          headers.set("Cache-Control", SHARE_IMAGE_CACHE_CONTROL);
-          return new Response(shared.body, { status: shared.status, headers });
-        }
-      }
-      if (request.method === "POST" && url.pathname === "/client/execute") {
-        return await routes.execute(request, env, cors);
-      }
-      if (request.method === "POST" && url.pathname === "/client/explain") {
-        return await routes.explain(request, env, cors);
-      }
+      const route = ROUTES.find((r) => r.method === request.method && r.match(url.pathname));
+      if (route !== undefined) return await route.handler({ request, url, env, cors });
       return new Response("Not Found", { status: 404, headers: cors });
     } catch (cause) {
       // StatusPages parity: 500 envelope carrying message + stack.

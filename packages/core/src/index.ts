@@ -19,9 +19,9 @@ export {
 export { Journey, JState } from "./journey.js";
 export { Island } from "./island.js";
 export {
-  IslandModel,
   floorMod,
   forLevel,
+  forNumber,
   hard,
   medium,
   sample,
@@ -33,7 +33,7 @@ export {
   level5,
   level6,
 } from "./model.js";
-export type { IslandLayout } from "./model.js";
+export type { IslandLayout, IslandModel } from "./model.js";
 export {
   genPlayable,
   isPlayable,

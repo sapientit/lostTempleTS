@@ -6,7 +6,7 @@
 
 import { Island } from "./island.js";
 import type { IslandModel } from "./model.js";
-import { forLevel, hard, medium, simple } from "./model.js";
+import { forLevel, forNumber, hard, medium, simple } from "./model.js";
 
 /**
  * Island number ranges:
@@ -63,7 +63,7 @@ export interface PlayableIsland {
  * (cap: 200 attempts), then renumber the island back to the requested number.
  */
 export function genPlayable(key: number): PlayableIsland {
-  const model = modelFor(key).forNumber(key);
+  const model = forNumber(modelFor(key), key);
   let seed = key;
   let island = Island.gen(seed, model);
   while (!isPlayable(island.difficulty, model)) {

@@ -5,18 +5,23 @@
 # The pregen CLI is the ONLY writer of island rows. Every generating command
 # emits an idempotent INSERT-OR-REPLACE .sql (+ .jsonl manifest) under
 # artifacts/sql/. Loading into D1 is always a separate, explicit step. This
-# script bundles "generate + (optionally) load into the live D1" so the routine
-# — especially topping up daily challenges — is one findable command.
+# script bundles "generate + (optionally) load" so the routine — especially
+# topping up daily challenges — is one findable command.
 #
-#   ./generate.sh dailies [DAYS] [--push]   # add the next DAYS of dailies (default 14)
-#   ./generate.sh pool --level L --count N [--push]
-#   ./generate.sh tutorials [--push]        # regenerate + load the tutorial/training maps
-#   ./generate.sh load <file.sql> [--local] # load an already-generated .sql (remote by default)
-#   ./generate.sh verify                    # replay-check the manifests in artifacts/sql
+#   ./generate.sh dailies [DAYS] [--dev|--live]   # add the next DAYS of dailies (default 14)
+#   ./generate.sh pool --level L --count N [--dev|--live]
+#   ./generate.sh tutorials [--dev|--live]        # regenerate the tutorial/training maps
+#   ./generate.sh load <file.sql> --dev|--live    # load an already-generated .sql
+#   ./generate.sh verify                          # replay-check the manifests in artifacts/sql
 #
-# Without --push, nothing touches D1: the script generates the .sql and prints
-# the exact `wrangler d1 execute` command for you to run. With --push it loads
-# into the LIVE (--remote) database after a confirmation prompt.
+# Every command that can touch D1 requires an EXPLICIT --dev or --live — there
+# is no default, so a bare command only ever generates the .sql and touches
+# nothing:
+#   --dev   loads into the LOCAL dev D1 (packages/worker's `wrangler dev
+#           --persist-to .wrangler/state`), no prompt.
+#   --live  loads into the LIVE remote D1, after a confirmation prompt.
+# Neither flag: prints the .sql path and both follow-up commands; it is never
+# implicitly pushed anywhere.
 #
 # DAILIES SEED HAZARD: `dailies` advances per-level seed counters
 # (artifacts/counters.json). Generating a date range consumes seeds, so
@@ -31,6 +36,11 @@ set -euo pipefail
 cd "$(dirname "$0")"            # packages/pregen
 ART=artifacts/sql
 DB=losttemple                  # D1 database name (see wrangler config / memory)
+# pregen has no wrangler.toml of its own; the D1 binding lives in the worker
+# package's config, so every wrangler invocation points at it explicitly —
+# this must work regardless of which directory the wrangler subprocess runs
+# from.
+WRANGLER_CONFIG=../worker/wrangler.toml
 
 die()  { echo "error: $*" >&2; exit 1; }
 info() { echo ">> $*" >&2; }
@@ -39,21 +49,68 @@ info() { echo ">> $*" >&2; }
 add_days() { date -j -v+"$2"d -f "%Y-%m-%d" "$1" "+%Y-%m-%d"; }
 today()    { date "+%Y-%m-%d"; }
 
-# Load a .sql file into D1. Second arg "local" targets the local dev DB,
-# anything else targets the LIVE remote DB (with a confirmation prompt).
+# Parse a --dev/--live flag out of "$@", dying on anything else (both given,
+# e.g.). Sets the globals TARGET ("dev", "live", or "" if neither given) and
+# PASSTHRU (remaining args) directly — NOT via command substitution: this
+# must run in the caller's own shell, not a subshell, or its array/variable
+# assignments would vanish the moment the subshell exits.
+TARGET=""
+PASSTHRU=()
+parse_target() {
+  TARGET=""
+  PASSTHRU=()
+  local a
+  for a in "$@"; do
+    case "$a" in
+      --dev)
+        [ -z "$TARGET" ] || die "pass only one of --dev / --live"
+        TARGET=dev
+        ;;
+      --live)
+        [ -z "$TARGET" ] || die "pass only one of --dev / --live"
+        TARGET=live
+        ;;
+      *) PASSTHRU+=("$a") ;;
+    esac
+  done
+}
+
+# `set --` only rebinds the CURRENT function's positional params, so this
+# can't be factored into a helper function — each caller below inlines:
+#   if [ "${#PASSTHRU[@]}" -gt 0 ]; then set -- "${PASSTHRU[@]}"; else set --; fi
+# (guarded per the bash 3.2 note above).
+
+# Load a .sql file into D1. target must be exactly "dev" or "live" — there is
+# no default, so a typo or omission fails loudly instead of silently picking
+# a side.
 load_sql() {
-  local file="$1" where="${2:-remote}"
+  local file="$1" target="$2"
   [ -f "$file" ] || die "no such sql file: $file"
-  if [ "$where" = "local" ]; then
-    info "loading $file into LOCAL D1"
-    npx wrangler d1 execute "$DB" --local --file "$file"
-  else
-    echo "About to load into the LIVE D1 ($DB --remote):" >&2
-    echo "    $file" >&2
-    read -r -p "Proceed? [y/N] " ok
-    [ "$ok" = "y" ] || [ "$ok" = "Y" ] || die "aborted"
-    npx wrangler d1 execute "$DB" --remote --file "$file"
-  fi
+  case "$target" in
+    dev)
+      info "loading $file into LOCAL dev D1"
+      npx wrangler d1 execute "$DB" --local --config "$WRANGLER_CONFIG" --file "$file"
+      ;;
+    live)
+      echo "About to load into the LIVE D1 ($DB --remote):" >&2
+      echo "    $file" >&2
+      read -r -p "Proceed? [y/N] " ok
+      [ "$ok" = "y" ] || [ "$ok" = "Y" ] || die "aborted"
+      npx wrangler d1 execute "$DB" --remote --config "$WRANGLER_CONFIG" --file "$file"
+      ;;
+    *)
+      die "load_sql: target must be 'dev' or 'live', got '$target'"
+      ;;
+  esac
+}
+
+# What to print when a generating command is run with neither --dev nor
+# --live: the .sql was written, nothing was loaded, here's exactly how to.
+announce_unloaded() {
+  local sql="$1"
+  echo "Generated $sql (not loaded). To load it:" >&2
+  echo "    ./generate.sh load $sql --dev     # local dev D1 only" >&2
+  echo "    ./generate.sh load $sql --live    # LIVE remote D1 (prompts to confirm)" >&2
 }
 
 # Find the newest daily end-date already generated (the "to" date embedded in
@@ -65,10 +122,12 @@ last_daily_date() {
 }
 
 cmd_dailies() {
-  local days=14 push=0
+  local days=14
+  parse_target "$@"
+  local target="$TARGET"
+  if [ "${#PASSTHRU[@]}" -gt 0 ]; then set -- "${PASSTHRU[@]}"; else set --; fi
   for a in "$@"; do
     case "$a" in
-      --push) push=1 ;;
       [0-9]*) days="$a" ;;
       *) die "unknown dailies arg: $a" ;;
     esac
@@ -89,37 +148,31 @@ cmd_dailies() {
 
   local sql="$ART/seed-dailies-$from-$to.sql"
   [ -f "$sql" ] || die "expected $sql was not produced"
-  if [ "$push" = 1 ]; then
-    load_sql "$sql" remote
-  else
-    echo "Generated $sql (not loaded). To publish to the live game:" >&2
-    echo "    ./generate.sh load $sql          # or re-run with --push" >&2
-  fi
+  if [ -n "$target" ]; then load_sql "$sql" "$target"; else announce_unloaded "$sql"; fi
 }
 
 cmd_pool() {
-  local push=0 passthru=()
-  for a in "$@"; do
-    if [ "$a" = "--push" ]; then push=1; else passthru+=("$a"); fi
-  done
+  parse_target "$@"
+  local target="$TARGET"
+  if [ "${#PASSTHRU[@]}" -gt 0 ]; then set -- "${PASSTHRU[@]}"; else set --; fi
   # pool prints "wrote <path> ..."; capture it to know what to load.
   local out
-  out="$(npm start -- pool "${passthru[@]}" | tee /dev/stderr)"
+  out="$(npm start -- pool "$@" | tee /dev/stderr)"
   local sql
   sql="$(echo "$out" | sed -nE 's/^wrote (.*\.sql).*/\1/p' | tail -n1)"
   [ -n "$sql" ] || die "could not determine generated pool sql from output"
-  if [ "$push" = 1 ]; then load_sql "$sql" remote
-  else echo "Generated $sql (not loaded). Run: ./generate.sh load $sql" >&2; fi
+  if [ -n "$target" ]; then load_sql "$sql" "$target"; else announce_unloaded "$sql"; fi
 }
 
 cmd_tutorials() {
-  local push=0
-  [ "${1:-}" = "--push" ] && push=1
+  parse_target "$@"
+  local target="$TARGET"
+  if [ "${#PASSTHRU[@]}" -gt 0 ]; then set -- "${PASSTHRU[@]}"; else set --; fi
+  [ "$#" -eq 0 ] || die "unknown tutorials arg: $1"
   npm start -- import-tutorials
   local sql="$ART/seed-tutorials.sql"
   [ -f "$sql" ] || die "expected $sql was not produced"
-  if [ "$push" = 1 ]; then load_sql "$sql" remote
-  else echo "Generated $sql (not loaded). Run: ./generate.sh load $sql" >&2; fi
+  if [ -n "$target" ]; then load_sql "$sql" "$target"; else announce_unloaded "$sql"; fi
 }
 
 case "${1:-}" in
@@ -130,7 +183,10 @@ case "${1:-}" in
   load)
     shift
     file="${1:-}"; [ -n "$file" ] || die "load: give a .sql file"
-    [ "${2:-}" = "--local" ] && load_sql "$file" local || load_sql "$file" remote
+    shift || true
+    parse_target "$@"
+    [ -n "$TARGET" ] || die "load: give exactly one of --dev or --live (no default — nothing loads without one)"
+    load_sql "$file" "$TARGET"
     ;;
   *)
     awk 'NR>2 && /^#/ {sub(/^# ?/,""); print; next} NR>2 {exit}' "$0"  # print header comment as help

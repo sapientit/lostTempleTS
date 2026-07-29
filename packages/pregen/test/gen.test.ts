@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Island, forLevel, modelFor } from "@losttemple/core";
+import { Island, forLevel, forNumber, modelFor } from "@losttemple/core";
 import {
   FIRST_SEED,
   dayNumber,
@@ -47,7 +47,7 @@ describe("pool mapping rows (genPlayable seed selection)", () => {
       const row = genMapping(num);
       expect((row.seed - num) % 20000).toBe(0);
       expect(row.seed).toBeGreaterThanOrEqual(num);
-      const model = modelFor(num).forNumber(num);
+      const model = forNumber(modelFor(num), num);
       expect(row.difficulty).toBeGreaterThanOrEqual(1);
       expect(row.difficulty).toBeLessThanOrEqual(model.maxDifficulty);
       // Every candidate seed before the accepted one must have been
@@ -85,7 +85,7 @@ describe("dailies", () => {
       // salted by level so levels sharing a layout pool (1&2, 3&4, 5&6)
       // diverge instead of always matching on the same day.
       const seed = counters[level]! - 1;
-      const model = forLevel(level)!.forNumber(row.num + level);
+      const model = forNumber(forLevel(level)!, row.num + level);
       const regen = Island.gen(seed, model);
       expect({ ...regen.commIsland, mapNum: row.num }).toEqual(row.comm);
       // Every seed skipped along the way failed the 1..100 gate.

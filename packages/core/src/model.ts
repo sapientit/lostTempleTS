@@ -22,104 +22,105 @@ export interface IslandLayout {
   river: CommRiver[];
 }
 
-export class IslandModel {
-  constructor(
-    readonly size: number[],
-    readonly blanks: number[],
-    readonly beachesX: number[],
-    readonly beachesY: number[],
-    readonly templeX: number,
-    readonly templeY: number,
-    readonly river: CommRiver[],
-    readonly cliffs: number,
-    readonly obstacles: number,
-    // null = all six obstacle types may be generated (existing behaviour)
-    readonly allowedObstacles: MapItem[] | null = null,
-    // null = randomised specialist costs (existing behaviour); otherwise the
-    // exact cost per role, with absent roles unavailable (-1)
-    readonly fixedRoles: ReadonlyMap<Role, number> | null = null,
-    // Islands generated above this difficulty are rejected and re-rolled.
-    readonly maxDifficulty: number = Number.MAX_SAFE_INTEGER,
-    // Beach/temple/river variants. Empty = always the fixed layout above.
-    readonly layouts: IslandLayout[] = [],
-  ) {}
-
-  /** The model to actually generate island [num] from: the island number
-   *  picks a layout variant (mod the pool size), so a given number always
-   *  regenerates the same island. No variants = the model itself. */
-  forNumber(num: number): IslandModel {
-    if (this.layouts.length === 0) return this;
-    const l = this.layouts[floorMod(num, this.layouts.length)]!;
-    return new IslandModel(
-      this.size,
-      this.blanks,
-      l.beachesX,
-      l.beachesY,
-      l.templeX,
-      l.templeY,
-      l.river,
-      this.cliffs,
-      this.obstacles,
-      this.allowedObstacles,
-      this.fixedRoles,
-      this.maxDifficulty,
-    );
-  }
+export interface IslandModel {
+  size: number[];
+  blanks: number[];
+  beachesX: number[];
+  beachesY: number[];
+  templeX: number;
+  templeY: number;
+  river: CommRiver[];
+  cliffs: number;
+  obstacles: number;
+  // null = all six obstacle types may be generated (existing behaviour)
+  allowedObstacles: MapItem[] | null;
+  // null = randomised specialist costs (existing behaviour); otherwise the
+  // exact cost per role, with absent roles unavailable (-1)
+  fixedRoles: ReadonlyMap<Role, number> | null;
+  // Islands generated above this difficulty are rejected and re-rolled.
+  maxDifficulty: number;
+  // Beach/temple/river variants. Empty = always the fixed layout above.
+  layouts: IslandLayout[];
 }
 
-export const hard = new IslandModel(
-  [4, 5, 5, 4],
-  [0, 0, 0, 1],
-  [0, 2],
-  [4, 1],
-  4,
-  5,
-  [{ startLand: 9, startEntry: 2, lands: [15, 22, 29], exit: [5, 5, 4, -1] }],
-  3,
-  7,
-);
+/** The model to actually generate island [num] from: the island number
+ *  picks a layout variant (mod the pool size), so a given number always
+ *  regenerates the same island. No variants = the model itself. */
+export function forNumber(model: IslandModel, num: number): IslandModel {
+  if (model.layouts.length === 0) return model;
+  const l = model.layouts[floorMod(num, model.layouts.length)]!;
+  return { ...model, layouts: [], ...l };
+}
 
-export const medium = new IslandModel(
-  [4, 4, 4, 4],
-  [0, 0, 0, 1],
-  [0, 3],
-  [4, 1],
-  4,
-  5,
-  [{ startLand: 9, startEntry: 2, lands: [15, 21, 26], exit: [5, 5, 5, -1] }],
-  3,
-  6,
-);
+export const hard: IslandModel = {
+  size: [4, 5, 5, 4],
+  blanks: [0, 0, 0, 1],
+  beachesX: [0, 2],
+  beachesY: [4, 1],
+  templeX: 4,
+  templeY: 5,
+  river: [{ startLand: 9, startEntry: 2, lands: [15, 22, 29], exit: [5, 5, 4, -1] }],
+  cliffs: 3,
+  obstacles: 7,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: [],
+};
+
+export const medium: IslandModel = {
+  size: [4, 4, 4, 4],
+  blanks: [0, 0, 0, 1],
+  beachesX: [0, 3],
+  beachesY: [4, 1],
+  templeX: 4,
+  templeY: 5,
+  river: [{ startLand: 9, startEntry: 2, lands: [15, 21, 26], exit: [5, 5, 5, -1] }],
+  cliffs: 3,
+  obstacles: 6,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: [],
+};
 
 // Tiny 3x3 island for tutorial/sample maps: 23 hexes, land at 6,7,8 /
 // 11,12,13 / 16,17,18, beaches 2 (top) and 10 (west), temple 18, river down
 // the middle column 7 -> 12 -> 17.
-export const sample = new IslandModel(
-  [3, 3, 3],
-  [0, 0, 0],
-  [0, 2],
-  [3, 1],
-  3,
-  4,
-  [{ startLand: 7, startEntry: 2, lands: [12, 17], exit: [5, 0, -1] }],
-  2,
-  3,
-);
+export const sample: IslandModel = {
+  size: [3, 3, 3],
+  blanks: [0, 0, 0],
+  beachesX: [0, 2],
+  beachesY: [3, 1],
+  templeX: 3,
+  templeY: 4,
+  river: [{ startLand: 7, startEntry: 2, lands: [12, 17], exit: [5, 0, -1] }],
+  cliffs: 2,
+  obstacles: 3,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: [],
+};
 
-export const simple = new IslandModel(
-  [3, 4, 4, 3],
-  [0, 0, 0, 1],
-  [0, 2],
-  [4, 1],
-  4,
-  3,
-  [
+export const simple: IslandModel = {
+  size: [3, 4, 4, 3],
+  blanks: [0, 0, 0, 1],
+  beachesX: [0, 2],
+  beachesY: [4, 1],
+  templeX: 4,
+  templeY: 3,
+  river: [
     { startLand: 8, startEntry: 2, lands: [13, 18], exit: [5, 0, -1] },
     { startLand: 11, startEntry: 5, lands: [12], exit: [3, -1] },
   ],
-  5,
-  4,
-);
+  cliffs: 5,
+  obstacles: 4,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: [],
+};
 
 // ---- Layout variant pools, one per base shape ----
 // Variant 0 is the classic fixed layout of that shape. Only LEVEL models use
@@ -223,114 +224,78 @@ const HARD_LAYOUTS: IslandLayout[] = [
 // 4 +tunnel,jungle,scout / 5 full game, randomised costs / 6 insane.
 const ARCH_ONLY: ReadonlyMap<Role, number> = new Map([["arch", 100]]);
 
-export const level1 = new IslandModel(
-  simple.size,
-  simple.blanks,
-  simple.beachesX,
-  simple.beachesY,
-  simple.templeX,
-  simple.templeY,
-  [], // pure cliff maze
-  12,
-  0,
-  [],
-  ARCH_ONLY,
-  100, // no straight/one-turn walk to the temple
-  SIMPLE_LAYOUTS.map((l) => ({ ...l, river: [] })),
-);
+export const level1: IslandModel = {
+  ...simple,
+  river: [], // pure cliff maze
+  cliffs: 12,
+  obstacles: 0,
+  allowedObstacles: [],
+  fixedRoles: ARCH_ONLY,
+  maxDifficulty: 100, // no straight/one-turn walk to the temple
+  layouts: SIMPLE_LAYOUTS.map((l) => ({ ...l, river: [] })),
+};
 
-export const level2 = new IslandModel(
-  simple.size,
-  simple.blanks,
-  simple.beachesX,
-  simple.beachesY,
-  simple.templeX,
-  simple.templeY,
-  simple.river, // piranhas need rivers
-  3,
-  4,
-  ["trap", "piranhas"],
-  ARCH_ONLY,
-  Number.MAX_SAFE_INTEGER,
-  SIMPLE_LAYOUTS,
-);
+export const level2: IslandModel = {
+  ...simple,
+  river: simple.river, // piranhas need rivers
+  cliffs: 3,
+  obstacles: 4,
+  allowedObstacles: ["trap", "piranhas"],
+  fixedRoles: ARCH_ONLY,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: SIMPLE_LAYOUTS,
+};
 
-export const level3 = new IslandModel(
-  medium.size,
-  medium.blanks,
-  medium.beachesX,
-  medium.beachesY,
-  medium.templeX,
-  medium.templeY,
-  medium.river,
-  3,
-  5,
-  ["trap", "piranhas", "guardians"],
+export const level3: IslandModel = {
+  ...medium,
+  cliffs: 3,
+  obstacles: 5,
+  allowedObstacles: ["trap", "piranhas", "guardians"],
   // Gold is not introduced until level 5: every available adventurer costs
   // a flat 100, giving exactly 10 attempts.
-  new Map<Role, number>([
+  fixedRoles: new Map<Role, number>([
     ["arch", 100],
     ["balloonist", 100],
   ]),
-  Number.MAX_SAFE_INTEGER,
-  MEDIUM_LAYOUTS,
-);
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: MEDIUM_LAYOUTS,
+};
 
-export const level4 = new IslandModel(
-  medium.size,
-  medium.blanks,
-  medium.beachesX,
-  medium.beachesY,
-  medium.templeX,
-  medium.templeY,
-  medium.river,
-  3,
-  6,
-  ["trap", "piranhas", "guardians", "tunnel", "jungle"],
-  new Map<Role, number>([
+export const level4: IslandModel = {
+  ...medium,
+  cliffs: 3,
+  obstacles: 6,
+  allowedObstacles: ["trap", "piranhas", "guardians", "tunnel", "jungle"],
+  fixedRoles: new Map<Role, number>([
     ["arch", 100],
     ["balloonist", 100],
     ["scout", 100],
   ]),
-  Number.MAX_SAFE_INTEGER,
-  MEDIUM_LAYOUTS,
-);
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: MEDIUM_LAYOUTS,
+};
 
 // Level 5 is the full game: all obstacles (adds mountain), all roles,
 // randomised costs - the hard model plus layout variety. Kept as a separate
 // instance so legacy hard islands (6001-9000) never vary.
-export const level5 = new IslandModel(
-  hard.size,
-  hard.blanks,
-  hard.beachesX,
-  hard.beachesY,
-  hard.templeX,
-  hard.templeY,
-  hard.river,
-  hard.cliffs,
-  hard.obstacles,
-  null,
-  null,
-  Number.MAX_SAFE_INTEGER,
-  HARD_LAYOUTS,
-);
+export const level5: IslandModel = {
+  ...hard,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: HARD_LAYOUTS,
+};
 
 // Insane: hard layout drowning in obstacles and cliffs.
-export const level6 = new IslandModel(
-  hard.size,
-  hard.blanks,
-  hard.beachesX,
-  hard.beachesY,
-  hard.templeX,
-  hard.templeY,
-  hard.river,
-  5,
-  9,
-  null,
-  null,
-  Number.MAX_SAFE_INTEGER,
-  HARD_LAYOUTS,
-);
+export const level6: IslandModel = {
+  ...hard,
+  cliffs: 5,
+  obstacles: 9,
+  allowedObstacles: null,
+  fixedRoles: null,
+  maxDifficulty: Number.MAX_SAFE_INTEGER,
+  layouts: HARD_LAYOUTS,
+};
 
 /** Model for a level number 1-6, or null if out of range. */
 export function forLevel(level: number): IslandModel | null {

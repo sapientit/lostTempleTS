@@ -187,29 +187,32 @@ export class Journey {
     return trace;
   }
 
-  /**
-   * Journey.create minus the IslandStore lookup (the core is pure): the
-   * caller resolves the island and passes it in.
-   */
-  static create(execute: CommExecute, island: Island): Journey {
+  /** Shared setup for create()/createForExplain(): a Journey with every
+   *  request field filled in from [execute], ready to execute() or
+   *  explain(). Kept as one place so the two never drift apart. */
+  private static fromExecute(execute: CommExecute): Journey {
     const j = new Journey(execute.mapNum, execute.num);
     j.role = execute.role;
     j.startPoint = execute.startPos;
     j.startDir = execute.startDir ?? "w";
     j.moves = execute.moves?.slice() ?? [];
     j.turns = execute.turns?.slice() ?? [];
+    return j;
+  }
+
+  /**
+   * Journey.create minus the IslandStore lookup (the core is pure): the
+   * caller resolves the island and passes it in.
+   */
+  static create(execute: CommExecute, island: Island): Journey {
+    const j = Journey.fromExecute(execute);
     j.execute(island);
     return j;
   }
 
   /** Same field-setting as create(), but runs explain() instead of execute(). */
   static createForExplain(execute: CommExecute, island: Island): { journey: Journey; trace: CommTraceStep[] } {
-    const j = new Journey(execute.mapNum, execute.num);
-    j.role = execute.role;
-    j.startPoint = execute.startPos;
-    j.startDir = execute.startDir ?? "w";
-    j.moves = execute.moves?.slice() ?? [];
-    j.turns = execute.turns?.slice() ?? [];
+    const j = Journey.fromExecute(execute);
     const trace = j.explain(island);
     return { journey: j, trace };
   }

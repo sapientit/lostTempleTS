@@ -102,7 +102,7 @@
             "index": 12,
             "x": 2,
             "y": 3,
-            "terrain": "forest",
+            "terrain": "temple",
             "directions": null
         },
         {
@@ -141,7 +141,7 @@
             "index": 17,
             "x": 3,
             "y": 2,
-            "terrain": "temple",
+            "terrain": "forest",
             "directions": null
         },
         {
@@ -214,16 +214,12 @@
             "type": "trap"
         },
         {
-            "index": 12,
-            "type": "trap"
-        },
-        {
             "index": 13,
             "type": "trap"
         },
         {
             "index": 18,
-            "type": "trap"
+            "type": "piranhas"
         },
         {
             "index": 16,
@@ -231,7 +227,7 @@
             "jungleDir": 5
         },
         {
-            "index": 17,
+            "index": 12,
             "type": "temple"
         }
     ],
@@ -248,7 +244,11 @@
             ]
         }
     ],
-    "cliffs": [],
+    "cliffs": [
+        {
+            "land": 17,
+            "direction": "ne"
+        }],
     "difficulty": 1,
     "roles": [
         {

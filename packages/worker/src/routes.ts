@@ -4,7 +4,7 @@
  */
 
 import { ALL_DIRECTIONS, ALL_ROLES, Journey, levelFor } from "@losttemple/core";
-import type { CommExecute, CommExplain } from "@losttemple/core";
+import type { CommExecute, CommExplain, Direction, Role } from "@losttemple/core";
 import { randomPoolNumber, resolveIsland } from "./islands.js";
 import type { Env } from "./islands.js";
 import {
@@ -63,6 +63,14 @@ export function getLevel(url: URL, cors: Record<string, string>): Response {
 
 const WALKING_EXEMPT = new Set(["balloonist", "researcher", "magician"]);
 
+function isRole(x: unknown): x is Role {
+  return (ALL_ROLES as readonly unknown[]).includes(x);
+}
+
+function isDirection(x: unknown): x is Direction {
+  return (ALL_DIRECTIONS as readonly unknown[]).includes(x);
+}
+
 /**
  * Shared CommExecute body parsing for /client/execute and /client/explain
  * (both take the identical request shape). Malformed JSON / missing
@@ -70,19 +78,19 @@ const WALKING_EXEMPT = new Set(["balloonist", "researcher", "magician"]);
  * Ktor's receive<CommExecute>() (S§2.4).
  */
 async function parseCommExecute(request: Request): Promise<CommExecute> {
-  const body = (await request.json()) as Partial<CommExecute>;
+  const body = (await request.json()) as Record<string, unknown>;
   if (
     typeof body.score !== "number" ||
     typeof body.prevScore !== "number" ||
     typeof body.num !== "number" ||
     typeof body.mapNum !== "number" ||
     typeof body.startPos !== "number" ||
-    !ALL_ROLES.includes(body.role as never) ||
-    (body.startDir !== undefined && !ALL_DIRECTIONS.includes(body.startDir as never))
+    !isRole(body.role) ||
+    (body.startDir !== undefined && !isDirection(body.startDir))
   ) {
     throw new Error("Invalid CommExecute body");
   }
-  return body as CommExecute;
+  return body as unknown as CommExecute;
 }
 
 export async function execute(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {

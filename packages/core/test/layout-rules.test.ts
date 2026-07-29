@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Coast, Island, Temple } from "../src/index.js";
 import type { IslandModel } from "../src/model.js";
-import { level1, level2, level3, level4, level5, level6 } from "../src/model.js";
+import { forNumber, level1, level2, level3, level4, level5, level6 } from "../src/model.js";
 import type { Land } from "../src/land.js";
 
 /**
@@ -50,7 +50,7 @@ describe("layout rules", () => {
     const variants = model.layouts.length === 0 ? 1 : model.layouts.length;
     for (let v = 0; v < variants; v++) {
       it(`${name} variant ${v}`, () => {
-        const resolved = model.forNumber(v);
+        const resolved = forNumber(model, v);
         const island = Island.gen(1000 + v, resolved);
         const label = `${name} variant ${v}`;
 

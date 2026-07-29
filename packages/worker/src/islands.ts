@@ -6,7 +6,7 @@
  * 10 ms CPU budget; logged, accepted risk R2).
  */
 
-import { Coast, Island, Temple, genPlayable, modelFor } from "@losttemple/core";
+import { Coast, Island, Temple, forNumber, genPlayable, modelFor } from "@losttemple/core";
 import type { CommIsland, CommRoute } from "@losttemple/core";
 import type { IslandModel } from "@losttemple/core";
 
@@ -104,7 +104,7 @@ export async function resolveIsland(env: Env, num: number): Promise<Island> {
     // mapNum was patched at import time; keep the stored JSON authoritative.
     island = Island.generateFromComm(JSON.parse(row.comm) as CommIsland);
   } else if (row !== null && row.seed !== null) {
-    const model = modelFor(num).forNumber(num);
+    const model = forNumber(modelFor(num), num);
     const route = row.route !== null ? (JSON.parse(row.route) as CommRoute) : null;
     island = genFromSeedWithoutTest(row.seed, model, row.difficulty, route, num);
   } else {
