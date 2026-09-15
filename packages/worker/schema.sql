@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS pool (
   PRIMARY KEY (level, k)
 ) WITHOUT ROWID;
 
+-- Without this, every DELETE/REPLACE against islands(num) forces D1's
+-- foreign-key check to full-scan pool (no index on the child FK column) to
+-- see if any pool row still references the deleted num - even for rows
+-- (e.g. dailies) that pool never references at all. This is what blew the
+-- free-tier daily row-read cap from a handful of INSERT OR REPLACE batches
+-- into islands: 84 rows replaced x ~30k pool rows scanned per row.
+CREATE INDEX IF NOT EXISTS idx_pool_num ON pool(num);
+
 -- Straight port of the Kotlin score table (S§10). Same semantics/clamping.
 CREATE TABLE IF NOT EXISTS score_counts (
   game  INTEGER NOT NULL,
