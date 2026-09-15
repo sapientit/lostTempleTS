@@ -16,6 +16,7 @@
 import {
   Island,
   Journey,
+  forDailyVariant,
   forLevel,
   forNumber,
   genPlayable,
@@ -119,7 +120,18 @@ export function genDailies(fromDay: number, toDay: number, counters: Counters): 
       // the level for layout selection only; num (mapNum, seed lookup, the
       // Kotlin-parity-gated IslandModel.forNumber contract itself) is
       // untouched.
-      const model = forNumber(forLevel(level)!, num + level);
+      //
+      // Levels 5/6 additionally feel repetitive even with that salt: their
+      // shared HARD_LAYOUTS pool is still only 4 entries, all the same grid
+      // shape, so a level's dailies cycle through the same 4 skeletons every
+      // 4 days. Draw those two levels from DAILY_HARD_VARIANTS instead — a
+      // 20-entry, dailies-only pool spanning 5 different grid shapes — via
+      // forDailyVariant (model.ts, alongside forNumber; touches nothing pool
+      // numbers or GATE 6 look at).
+      const model =
+        level === 5 || level === 6
+          ? forDailyVariant(forLevel(level)!, num + level)
+          : forNumber(forLevel(level)!, num + level);
       let seed = next[level] ?? FIRST_SEED;
       let island = Island.gen(seed, model);
       let attempts = 0;

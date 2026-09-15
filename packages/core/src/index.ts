@@ -19,7 +19,9 @@ export {
 export { Journey, JState } from "./journey.js";
 export { Island } from "./island.js";
 export {
+  DAILY_HARD_VARIANTS,
   floorMod,
+  forDailyVariant,
   forLevel,
   forNumber,
   hard,
@@ -33,7 +35,7 @@ export {
   level5,
   level6,
 } from "./model.js";
-export type { IslandLayout, IslandModel } from "./model.js";
+export type { DailyShapeVariant, IslandLayout, IslandModel } from "./model.js";
 export {
   genPlayable,
   isPlayable,

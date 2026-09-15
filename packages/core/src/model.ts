@@ -297,6 +297,197 @@ export const level6: IslandModel = {
   layouts: HARD_LAYOUTS,
 };
 
+// ---- Daily-only shape variants for levels 5 & 6 --------------------------
+// A daily is generated fresh every single day, so the 4-entry HARD_LAYOUTS
+// pool above - shared with the 500000-699999/600000-699999 pool number
+// space and gated by GATE 6 against the frozen Kotlin dump - cycles far too
+// fast to feel varied (pregen/src/gen.ts's level-salted forNumber() call
+// still collapses to a 4-day repeat within a level). This wider pool is for
+// the dailies path ONLY: pool/legacy islands never look at it, so adding to
+// it cannot change any Kotlin-parity comparison for an already-generated
+// number. Same beach/temple/river authoring pattern as HARD_LAYOUTS - land
+// indices verified by construction (walked from real Island.gen adjacency,
+// see the shape's layout comment) - plus four new base grid shapes, each
+// with the same 18-land total as `hard` so obstacle/cliff counts still fit.
+export interface DailyShapeVariant extends IslandLayout {
+  size: number[];
+  blanks: number[];
+}
+
+const HARD_SHAPE_VARIANTS: DailyShapeVariant[] = HARD_LAYOUTS.map((l) => ({
+  ...l,
+  size: hard.size,
+  blanks: hard.blanks,
+}));
+
+// Shape (5,5,4,4): lands idx 8-12 / 15-19 / 23-26 / 29-32.
+const SHAPE_5544: { size: number[]; blanks: number[] } = { size: [5, 5, 4, 4], blanks: [0, 0, 1, 1] };
+const SHAPE_5544_VARIANTS: DailyShapeVariant[] = [
+  {
+    ...SHAPE_5544,
+    beachesX: [0, 4],
+    beachesY: [2, 7],
+    templeX: 4,
+    templeY: 4,
+    river: [{ startLand: 8, startEntry: 1, lands: [16, 23, 30], exit: [4, 4, 4, -1] }],
+  },
+  {
+    ...SHAPE_5544,
+    beachesX: [0, 4],
+    beachesY: [7, 2],
+    templeX: 4,
+    templeY: 5,
+    river: [{ startLand: 12, startEntry: 2, lands: [19, 25, 31], exit: [5, 5, 5, -1] }],
+  },
+  {
+    ...SHAPE_5544,
+    beachesX: [1, 3],
+    beachesY: [1, 7],
+    templeX: 2,
+    templeY: 5,
+    river: [{ startLand: 15, startEntry: 0, lands: [16, 17, 18], exit: [3, 3, 3, -1] }],
+  },
+  {
+    ...SHAPE_5544,
+    beachesX: [0, 5],
+    beachesY: [4, 5],
+    templeX: 3,
+    templeY: 4,
+    river: [{ startLand: 9, startEntry: 2, lands: [17, 24], exit: [4, 4, -1] }],
+  },
+];
+
+// Shape (4,6,4,4): lands idx 8-11 / 14-19 / 23-26 / 29-32.
+const SHAPE_4644: { size: number[]; blanks: number[] } = { size: [4, 6, 4, 4], blanks: [1, 0, 1, 1] };
+const SHAPE_4644_VARIANTS: DailyShapeVariant[] = [
+  {
+    ...SHAPE_4644,
+    beachesX: [0, 3],
+    beachesY: [3, 7],
+    templeX: 4,
+    templeY: 5,
+    river: [{ startLand: 8, startEntry: 1, lands: [16, 24, 31], exit: [4, 4, 4, -1] }],
+  },
+  {
+    ...SHAPE_4644,
+    beachesX: [0, 4],
+    beachesY: [7, 2],
+    templeX: 3,
+    templeY: 5,
+    river: [{ startLand: 11, startEntry: 2, lands: [18, 25], exit: [5, 5, -1] }],
+  },
+  {
+    ...SHAPE_4644,
+    beachesX: [2, 2],
+    beachesY: [1, 8],
+    templeX: 2,
+    templeY: 5,
+    river: [{ startLand: 14, startEntry: 0, lands: [15, 16, 17], exit: [3, 3, 3, -1] }],
+  },
+  {
+    ...SHAPE_4644,
+    beachesX: [0, 5],
+    beachesY: [4, 6],
+    templeX: 4,
+    templeY: 6,
+    river: [{ startLand: 9, startEntry: 1, lands: [17, 25, 32], exit: [4, 4, 4, -1] }],
+  },
+];
+
+// Shape (4,4,5,5): lands idx 7-10 / 13-16 / 19-23 / 26-30.
+const SHAPE_4455: { size: number[]; blanks: number[] } = { size: [4, 4, 5, 5], blanks: [1, 1, 0, 0] };
+const SHAPE_4455_VARIANTS: DailyShapeVariant[] = [
+  {
+    ...SHAPE_4455,
+    beachesX: [0, 4],
+    beachesY: [3, 7],
+    templeX: 4,
+    templeY: 4,
+    river: [{ startLand: 7, startEntry: 1, lands: [14, 21, 28], exit: [4, 4, 4, -1] }],
+  },
+  {
+    ...SHAPE_4455,
+    beachesX: [0, 4],
+    beachesY: [6, 1],
+    templeX: 4,
+    templeY: 5,
+    river: [{ startLand: 10, startEntry: 2, lands: [16, 22, 29], exit: [5, 5, 5, -1] }],
+  },
+  {
+    ...SHAPE_4455,
+    beachesX: [2, 2],
+    beachesY: [2, 7],
+    templeX: 2,
+    templeY: 6,
+    river: [{ startLand: 13, startEntry: 0, lands: [14, 15, 16], exit: [3, 3, 3, -1] }],
+  },
+  {
+    ...SHAPE_4455,
+    beachesX: [0, 5],
+    beachesY: [4, 6],
+    templeX: 4,
+    templeY: 6,
+    river: [{ startLand: 8, startEntry: 1, lands: [15, 22, 30], exit: [4, 4, 4, -1] }],
+  },
+];
+
+// Shape (3,4,6,5): lands idx 6-8 / 11-14 / 18-23 / 26-30.
+const SHAPE_3465: { size: number[]; blanks: number[] } = { size: [3, 4, 6, 5], blanks: [1, 1, 0, 0] };
+const SHAPE_3465_VARIANTS: DailyShapeVariant[] = [
+  {
+    ...SHAPE_3465,
+    beachesX: [0, 4],
+    beachesY: [3, 8],
+    templeX: 4,
+    templeY: 5,
+    river: [{ startLand: 6, startEntry: 1, lands: [12, 20, 29], exit: [4, 4, 4, -1] }],
+  },
+  {
+    ...SHAPE_3465,
+    beachesX: [0, 4],
+    beachesY: [6, 1],
+    templeX: 4,
+    templeY: 4,
+    river: [{ startLand: 8, startEntry: 2, lands: [13, 20, 28], exit: [5, 5, 5, -1] }],
+  },
+  {
+    ...SHAPE_3465,
+    beachesX: [2, 2],
+    beachesY: [2, 8],
+    templeX: 3,
+    templeY: 6,
+    river: [{ startLand: 18, startEntry: 0, lands: [19, 20, 21, 22], exit: [3, 3, 3, 3, -1] }],
+  },
+  {
+    ...SHAPE_3465,
+    beachesX: [0, 5],
+    beachesY: [4, 6],
+    templeX: 4,
+    templeY: 6,
+    river: [{ startLand: 7, startEntry: 1, lands: [13, 21, 30], exit: [4, 4, 4, -1] }],
+  },
+];
+
+/** 20 shape+layout variants for daily levels 5/6 only: the classic hard
+ *  body's 4 arrangements plus 4 new 18-land bodies with 4 arrangements
+ *  each. Never used by genPlayable/pool numbers. */
+export const DAILY_HARD_VARIANTS: DailyShapeVariant[] = [
+  ...HARD_SHAPE_VARIANTS,
+  ...SHAPE_5544_VARIANTS,
+  ...SHAPE_4644_VARIANTS,
+  ...SHAPE_4455_VARIANTS,
+  ...SHAPE_3465_VARIANTS,
+];
+
+/** Like forNumber(), but picks from DAILY_HARD_VARIANTS (shape included)
+ *  instead of model.layouts - dailies-only, so widening the pool never
+ *  touches pool-number/Kotlin-parity behaviour. */
+export function forDailyVariant(model: IslandModel, num: number): IslandModel {
+  const v = DAILY_HARD_VARIANTS[floorMod(num, DAILY_HARD_VARIANTS.length)]!;
+  const { size, blanks, ...layout } = v;
+  return { ...model, layouts: [], size, blanks, ...layout };
+}
+
 /** Model for a level number 1-6, or null if out of range. */
 export function forLevel(level: number): IslandModel | null {
   switch (level) {
