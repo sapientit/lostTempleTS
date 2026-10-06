@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Coast, Island, Temple } from "../src/index.js";
+import { Coast, forDailyVariant, Island, level6, Temple } from "../src/index.js";
 import type { IslandModel } from "../src/model.js";
-import { forNumber, level1, level2, level3, level4, level5, level6 } from "../src/model.js";
+import { forNumber, level1, level2, level3, level4, level5 } from "../src/model.js";
 import type { Land } from "../src/land.js";
 
 /**
@@ -97,4 +97,37 @@ describe("layout rules", () => {
       });
     }
   }
+});
+
+describe("daily-only layouts", () => {
+  it("puts 6000259's second 5/5/4/4 beach at the north-west entry", () => {
+    // Level six salts this daily's map number before selecting its model.
+    const model = forDailyVariant(level6, 6_000_259 + 6);
+    const island = Island.gen(1_000_000, model);
+
+    expect(
+      [...island.indexes.values()]
+        .filter((land) => land instanceof Coast)
+        .map((land) => land.index),
+    ).toEqual([6, 7]);
+  });
+
+  it("keeps the reviewed daily beaches and temples on their intended edges", () => {
+    const expectations = [
+      [11, [[0, 4], [2, 1]], [4, 6]],
+      [14, [[2, 2], [4, 1]], [2, 6]],
+      [15, [[0, 4], [5, 6]], [4, 2]],
+      [18, [[2, 2], [2, 8]], [4, 4]],
+      [19, [[0, 4], [5, 2]], [4, 6]],
+    ] as const;
+
+    for (const [variant, beaches, temple] of expectations) {
+      const island = Island.gen(1_000_000, forDailyVariant(level6, variant));
+      expect(
+        beaches.map(([x, y]) => island.map[x]![y] instanceof Coast),
+        `daily variant ${variant} beaches`,
+      ).toEqual([true, true]);
+      expect(island.map[temple[0]]![temple[1]] instanceof Temple, `daily variant ${variant} temple`).toBe(true);
+    }
+  });
 });

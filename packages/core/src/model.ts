@@ -333,8 +333,10 @@ const SHAPE_5544_VARIANTS: DailyShapeVariant[] = [
   },
   {
     ...SHAPE_5544,
-    beachesX: [0, 4],
-    beachesY: [7, 2],
+    // Keep both entry points at the north-west end: a beach at index 28
+    // leaves the top-left of this long island effectively unreachable.
+    beachesX: [0, 1],
+    beachesY: [7, 1],
     templeX: 4,
     templeY: 5,
     river: [{ startLand: 12, startEntry: 2, lands: [19, 25, 31], exit: [5, 5, 5, -1] }],
@@ -386,8 +388,8 @@ const SHAPE_4644_VARIANTS: DailyShapeVariant[] = [
   },
   {
     ...SHAPE_4644,
-    beachesX: [0, 5],
-    beachesY: [4, 6],
+    beachesX: [0, 2],
+    beachesY: [4, 1],
     templeX: 4,
     templeY: 6,
     river: [{ startLand: 9, startEntry: 1, lands: [17, 25, 32], exit: [4, 4, 4, -1] }],
@@ -415,8 +417,8 @@ const SHAPE_4455_VARIANTS: DailyShapeVariant[] = [
   },
   {
     ...SHAPE_4455,
-    beachesX: [2, 2],
-    beachesY: [2, 7],
+    beachesX: [2, 4],
+    beachesY: [2, 1],
     templeX: 2,
     templeY: 6,
     river: [{ startLand: 13, startEntry: 0, lands: [14, 15, 16], exit: [3, 3, 3, -1] }],
@@ -426,7 +428,7 @@ const SHAPE_4455_VARIANTS: DailyShapeVariant[] = [
     beachesX: [0, 5],
     beachesY: [4, 6],
     templeX: 4,
-    templeY: 6,
+    templeY: 2,
     river: [{ startLand: 8, startEntry: 1, lands: [15, 22, 30], exit: [4, 4, 4, -1] }],
   },
 ];
@@ -454,14 +456,14 @@ const SHAPE_3465_VARIANTS: DailyShapeVariant[] = [
     ...SHAPE_3465,
     beachesX: [2, 2],
     beachesY: [2, 8],
-    templeX: 3,
-    templeY: 6,
+    templeX: 4,
+    templeY: 4,
     river: [{ startLand: 18, startEntry: 0, lands: [19, 20, 21, 22], exit: [3, 3, 3, 3, -1] }],
   },
   {
     ...SHAPE_3465,
     beachesX: [0, 5],
-    beachesY: [4, 6],
+    beachesY: [4, 2],
     templeX: 4,
     templeY: 6,
     river: [{ startLand: 7, startEntry: 1, lands: [13, 21, 30], exit: [4, 4, 4, -1] }],
