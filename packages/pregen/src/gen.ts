@@ -5,10 +5,12 @@
  * - pool/legacy rows: IslandStore.genPlayable (core `genPlayable`) — model
  *   and layout from the REQUESTED number, seeds n, n+20000, ... until
  *   difficulty in 1..maxDifficulty; row = (num, seed, difficulty, route).
+ *   Pregen additionally rejects tunnel-hazard islands (see
+ *   hasTunnelHazard), so its seed choice can differ from core genPlayable.
  * - dailies: DailyIslands.generateFor — per-level seed counter starting at
  *   FIRST_SEED (1,000,000), retry seed+1 until difficulty in 1..100 (hard
- *   cap 5000 attempts), layout from the map number, full CommIsland JSON
- *   with mapNum patched to base+day.
+ *   cap 5000 attempts) and no tunnel hazard, layout from the map number,
+ *   full CommIsland JSON with mapNum patched to base+day.
  * - tutorials: resource JSON imported verbatim, mapNum patched to the
  *   filename number (the filename is authoritative).
  */
@@ -19,8 +21,11 @@ import {
   forDailyVariant,
   forLevel,
   forNumber,
-  genPlayable,
+  isPlayable,
   modelFor,
+  Mountain,
+  nextCandidate,
+  Tunnel,
 } from "@losttemple/core";
 import type { CommExecute, CommIsland, CommRoute, Death } from "@losttemple/core";
 
@@ -75,9 +80,43 @@ export function isCommRow(row: Row): row is CommRow {
   return row.kind === "daily" || row.kind === "tutorial";
 }
 
-/** One pool/legacy/ad-hoc mapping row via the genPlayable reroll (S§4.8). */
+/**
+ * True if some tunnel has a mountain in both of the next two hexes in one
+ * direction. The engine (faithful to Kotlin) can't resolve that: the jump
+ * lands on the far mountain, the bounce back into the near one bounces
+ * again, and the walker is left stuck on the tunnel with a stale
+ * `canEnter = false` that turns his next ordinary step into a phantom
+ * bounce. Fixing the engine would shift difficulties under the frozen
+ * GATE 6 dumps, so pregen just never selects such islands. Checked here,
+ * offline, rather than in island generation: pool islands are regenerated
+ * live from their stored seed, so generation itself must not change.
+ */
+export function hasTunnelHazard(island: Island): boolean {
+  for (const land of island.indexes.values()) {
+    if (!(land instanceof Tunnel)) continue;
+    for (const [dir, edge] of land.dirs) {
+      const next = edge.getNext(dir);
+      const follow = next?.dirs.get(dir)?.getNext(dir);
+      if (next instanceof Mountain && follow instanceof Mountain) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * One pool/legacy/ad-hoc mapping row: core genPlayable's reroll (S§4.8 —
+ * seeds n, n+20000, ... capped at +4,000,000) with tunnel-hazard islands
+ * rejected as well as unplayable ones.
+ */
 export function genMapping(num: number): MappingRow {
-  const { island, seed } = genPlayable(num);
+  const model = forNumber(modelFor(num), num);
+  let seed = num;
+  let island = Island.gen(seed, model);
+  while (!isPlayable(island.difficulty, model) || hasTunnelHazard(island)) {
+    seed = nextCandidate(seed);
+    if (seed >= num + 4_000_000) throw new Error(`no playable island found for map ${num}`);
+    island = Island.gen(seed, model);
+  }
   return {
     num,
     kind: num >= 100_000 ? "level" : "legacy",
@@ -102,14 +141,19 @@ export interface DailiesResult {
 
 /**
  * Dailies for days fromDay..toDay inclusive (days since 2026-01-01), from
- * the given per-level seed counters. Days ascending, levels 1..6 within a
+ * the given per-level seed counters, for [levels] (default all six). Days ascending, levels 1..6 within a
  * day — the same order as Kotlin's catchUp, so counter sequences match.
  */
-export function genDailies(fromDay: number, toDay: number, counters: Counters): DailiesResult {
+export function genDailies(
+  fromDay: number,
+  toDay: number,
+  counters: Counters,
+  levels: readonly number[] = LEVELS,
+): DailiesResult {
   const rows: CommRow[] = [];
   const next: Counters = { ...counters };
   for (let day = fromDay; day <= toDay; day++) {
-    for (const level of LEVELS) {
+    for (const level of levels) {
       const num = level * 1_000_000 + day;
       // The daily's map number picks the layout variant, so the layout
       // cycles day by day and regenerates identically. Layout pools are
@@ -135,10 +179,10 @@ export function genDailies(fromDay: number, toDay: number, counters: Counters): 
       let seed = next[level] ?? FIRST_SEED;
       let island = Island.gen(seed, model);
       let attempts = 0;
-      while (!(island.difficulty >= 1 && island.difficulty <= 100)) {
+      while (!(island.difficulty >= 1 && island.difficulty <= 100) || hasTunnelHazard(island)) {
         attempts++;
         if (attempts >= 5000) {
-          throw new Error(`no island with difficulty 1..100 in 5000 seeds from ${next[level]}`);
+          throw new Error(`no hazard-free island with difficulty 1..100 in 5000 seeds from ${next[level]}`);
         }
         seed++;
         island = Island.gen(seed, model);
@@ -183,7 +227,8 @@ export function replayRoute(island: Island, route: CommRoute, mapNum: number): D
  * Verify one row: regenerate from its seed (mapping rows) or rebuild from
  * its comm (daily/tutorial rows), check the stored difficulty (mapping and
  * daily rows only — tutorial files carry historical difficulties served
- * verbatim), and replay the stored route to success. Null = OK.
+ * verbatim), check for a tunnel hazard, and replay the stored route to
+ * success. Null = OK.
  */
 export function verifyRow(row: Row): string | null {
   if (isCommRow(row)) {
@@ -192,6 +237,7 @@ export function verifyRow(row: Row): string | null {
     if (row.comm.difficulty !== row.difficulty) {
       return `stored difficulty ${row.difficulty} != comm difficulty ${row.comm.difficulty}`;
     }
+    if (hasTunnelHazard(island)) return "tunnel faces two mountains";
     if (row.comm.route) {
       const death = replayRoute(island, row.comm.route, row.num);
       if (death !== "success") return `stored route replays to ${death}`;
@@ -205,6 +251,7 @@ export function verifyRow(row: Row): string | null {
   if (island.difficulty !== row.difficulty) {
     return `regen difficulty ${island.difficulty} != stored ${row.difficulty}`;
   }
+  if (hasTunnelHazard(island)) return "tunnel faces two mountains";
   if (row.route === null) return "mapping row without a route";
   const death = replayRoute(island, row.route, row.num);
   if (death !== "success") return `stored route replays to ${death}`;

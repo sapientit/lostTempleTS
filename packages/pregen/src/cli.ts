@@ -9,7 +9,7 @@
  *
  * Subcommands:
  *   pool --level L --count N [--start-offset K] [--out DIR]
- *   dailies --from YYYY-MM-DD --to YYYY-MM-DD [--counters-file F] [--out DIR]
+ *   dailies --from YYYY-MM-DD --to YYYY-MM-DD [--level L] [--counters-file F] [--out DIR]
  *   import-tutorials [--dir DIR] [--out DIR]
  *   number N [N...] [--out DIR]
  *   verify [--sample N] [--dir DIR]
@@ -143,14 +143,18 @@ function cmdDailies(args: Args): void {
   const outDir = args.flags["out"] ?? DEFAULT_OUT;
   const countersFile = args.flags["counters-file"] ?? DEFAULT_COUNTERS;
 
+  const level = args.flags["level"] !== undefined ? requireInt(args, "level") : null;
+  if (level !== null && (level < 1 || level > 6)) throw new Error("--level must be 1..6");
+
   const counters = loadCounters(countersFile);
   console.log(`dailies days ${from}..${to} (${isoDate(from)}..${isoDate(to)}), counters ${JSON.stringify(counters)}`);
-  const result = genDailies(from, to, counters);
+  const result = genDailies(from, to, counters, level === null ? undefined : [level]);
   const metaEntries = Object.fromEntries(
     Object.entries(result.counters).map(([level, seed]) => [`daily_counter_${level}`, String(seed)]),
   );
   const sql = [islandsInsertSql(result.rows), metaUpsertSql(metaEntries)].join("\n");
-  writeArtifacts(outDir, `seed-dailies-${isoDate(from)}-${isoDate(to)}`, sql, result.rows);
+  const suffix = level === null ? "" : `-l${level}`;
+  writeArtifacts(outDir, `seed-dailies-${isoDate(from)}-${isoDate(to)}${suffix}`, sql, result.rows);
   fs.mkdirSync(path.dirname(countersFile), { recursive: true });
   fs.writeFileSync(countersFile, JSON.stringify(result.counters, null, 2) + "\n");
   console.log(`updated ${countersFile}: ${JSON.stringify(result.counters)}`);
@@ -174,7 +178,9 @@ function cmdNumber(args: Args): void {
   });
   if (nums.length === 0) throw new Error("number: give at least one island number");
   const rows: Row[] = nums.map((n) => genMapping(n));
-  writeArtifacts(outDir, `seed-number-${nums.join("-")}`, islandsInsertSql(rows), rows);
+  // Long lists would blow the filename length limit; name by first + count.
+  const name = nums.length <= 5 ? nums.join("-") : `${nums[0]}-x${nums.length}`;
+  writeArtifacts(outDir, `seed-number-${name}`, islandsInsertSql(rows), rows);
 }
 
 function cmdVerify(args: Args): void {

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { Island, forLevel, forNumber, modelFor } from "@losttemple/core";
+import { Island, forLevel, forNumber, genPlayable, modelFor } from "@losttemple/core";
 import {
   FIRST_SEED,
   dayNumber,
   freshCounters,
   genDailies,
   genMapping,
+  hasTunnelHazard,
   importTutorial,
   isoDate,
   verifyRow,
@@ -51,10 +52,12 @@ describe("pool mapping rows (genPlayable seed selection)", () => {
       expect(row.difficulty).toBeGreaterThanOrEqual(1);
       expect(row.difficulty).toBeLessThanOrEqual(model.maxDifficulty);
       // Every candidate seed before the accepted one must have been
-      // rejected by the gate — that is what made genPlayable step on.
+      // rejected by the gate (or the tunnel hazard) — that is what made the
+      // reroll step on.
       for (let s = num; s < row.seed; s += 20000) {
-        const d = Island.gen(s, model).difficulty;
-        expect(d === 0 || d > model.maxDifficulty).toBe(true);
+        const island = Island.gen(s, model);
+        const d = island.difficulty;
+        expect(d === 0 || d > model.maxDifficulty || hasTunnelHazard(island)).toBe(true);
       }
       expect(verifyRow(row)).toBeNull();
     }
@@ -64,6 +67,31 @@ describe("pool mapping rows (genPlayable seed selection)", () => {
     const row = genMapping(42);
     expect(row.kind).toBe("legacy");
     expect(verifyRow(row)).toBeNull();
+  });
+});
+
+describe("tunnel hazard (tunnel facing two mountains)", () => {
+  // 600016 is the first level-6 number whose core genPlayable island has a
+  // tunnel with two mountains straight beyond it.
+  const HAZARD_NUM = 600016;
+
+  it("is detected on the core genPlayable island", () => {
+    expect(hasTunnelHazard(genPlayable(HAZARD_NUM).island)).toBe(true);
+    expect(hasTunnelHazard(genPlayable(300001).island)).toBe(false);
+  });
+
+  it("makes genMapping reroll to a hazard-free seed", () => {
+    const row = genMapping(HAZARD_NUM);
+    expect(row.seed).not.toBe(genPlayable(HAZARD_NUM).seed);
+    expect((row.seed - HAZARD_NUM) % 20000).toBe(0);
+    expect(hasTunnelHazard(Island.gen(row.seed, forNumber(modelFor(HAZARD_NUM), HAZARD_NUM)))).toBe(false);
+    expect(verifyRow(row)).toBeNull();
+  });
+
+  it("is flagged by verifyRow on a row built from the hazardous seed", () => {
+    const { island, seed } = genPlayable(HAZARD_NUM);
+    const row = { num: HAZARD_NUM, kind: "level" as const, seed, difficulty: island.difficulty, route: island.route };
+    expect(verifyRow(row)).toMatch(/tunnel/);
   });
 });
 
