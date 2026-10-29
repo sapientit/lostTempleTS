@@ -114,10 +114,12 @@ announce_unloaded() {
 }
 
 # Find the newest daily end-date already generated (the "to" date embedded in
-# the latest seed-dailies-<from>-<to>.sql filename). Empty if none exist.
+# the latest complete seed-dailies-<from>-<to>.sql batch filename). Empty if
+# none exist.  Older one-off files may carry a level suffix (for example
+# `...-l6.sql`); they are not batches and must not reach `date` as a pathname.
 last_daily_date() {
-  ls "$ART"/seed-dailies-*.sql 2>/dev/null \
-    | sed -E 's/.*seed-dailies-[0-9]{4}-[0-9]{2}-[0-9]{2}-([0-9]{4}-[0-9]{2}-[0-9]{2})\.sql/\1/' \
+  printf '%s\n' "$ART"/seed-dailies-*.sql \
+    | sed -nE 's#(^|.*/)seed-dailies-[0-9]{4}-[0-9]{2}-[0-9]{2}-([0-9]{4}-[0-9]{2}-[0-9]{2})\.sql$#\2#p' \
     | sort | tail -n1
 }
 

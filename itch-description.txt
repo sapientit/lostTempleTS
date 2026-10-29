@@ -1,0 +1,36 @@
+SHORT BLURB:
+
+Send doomed adventurers into a hex-grid island to find the Lost Temple. Read the clues in how they died, and try not to repeat the mistake.
+
+
+FULL DESCRIPTION:
+
+Lost Temple
+
+Somewhere on this island is a temple full of ancient treasure. You can't see the traps, the piranhas, the jungle that spins you around, or the guardians' catapult waiting to launch the unwary into the eternal fire. The only way to find out where they are is to send someone in and see what kills them.
+
+Lost Temple is a deduction puzzle dressed as an expedition sim. Pick a hex-grid island, choose an explorer, plot a course - a starting beach, a direction, a distance, up to three turns - and send them off. Most of the time, they die. That's fine. How and where they died is the clue. Piece together enough failed expeditions and you'll work out exactly where the danger is hiding, and where it isn't.
+
+Five explorers, five ways to gather information:
+
+Archaeologist - the only one who can actually open the temple. Everyone else is just scouting for them.
+
+Scout - shrugs off mountains and cliffs, and reports where they died, if not always how.
+
+Warrior - tough enough to survive almost anything, except spiders, if they stop to rest.
+
+Balloonist - flies safely over every hazard on the ground, at the cost of drawing the attention of some extremely territorial eagles.
+
+Researcher - never sets foot outside home, but scans the hexes around any point with ancient scrolls that occasionally come cursed.
+
+Hidden hazards to map out through trial and error: concealed traps, piranha-infested river crossings, disorienting jungle that reliably turns you left or right, tunnels that fling you two hexes ahead, mountains that spin you back the way you came, cliffs that block or kill depending which side you're on, and a guardian settlement that would be delighted to catapult you into the temple's fire personally.
+
+Structure:
+
+A guided tutorial track through six certification levels, plus an "insane" difficulty for the fully qualified, each introducing new explorers and hazards.
+
+Daily challenge islands at every level you've certified for, so there's always a fresh one to solve.
+
+From level 5 onward, expeditions cost gold instead of running on a fixed budget. Spend wisely, because whatever's left when you find the temple is your score.
+
+No two islands are alike, nothing is marked for you, and every death is a data point. Free to play in your browser.
