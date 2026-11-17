@@ -203,10 +203,16 @@ export class Tunnel extends Land {
       // Kotlin `dirs[state.direction]!!` throws; keep the engine equally strict.
       throw new Error("tunnel leave: no edge in facing direction");
     }
-    const nextLand = nextEdge.getNext(state.direction);
-    const followEdge = nextLand!.dirs.get(state.direction);
+    const nextLand = nextEdge.getNext(state.direction)!;
+    const followEdge = nextLand.dirs.get(state.direction);
     const followLand = followEdge?.getNext(state.direction) ?? null;
     if (followLand === null) {
+      // Deviation from the Kotlin reference, which left the walker's
+      // position at this tunnel hex: a tunnel with no far shore is tunneling
+      // under open water, so the death is recorded in the sea hex being
+      // tunneled under (where water genuinely exists), not back on dry land
+      // at the tunnel entrance.
+      if (nextLand instanceof Water) state.position = nextLand;
       state.addDeath("drowning");
     } else {
       // Dummy "safe" edge straight to the land after the next: the skipped
@@ -219,7 +225,7 @@ export class Tunnel extends Land {
         // Destination was a mountain: the bounce drops the walker in the
         // skipped hex with reversed facing.
         state.canEnter = true;
-        nextLand!.enter(state);
+        nextLand.enter(state);
       }
     }
   }
